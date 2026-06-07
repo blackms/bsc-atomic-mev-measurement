@@ -1,0 +1,87 @@
+{
+  "targetA_captured": {
+    "target": "realizability:captured (realized net-positive extraction)",
+    "n": 31,
+    "positives": 0,
+    "base_rate": 0.0,
+    "captureRate_unique": [
+      0.0
+    ],
+    "alreadyCaptured_unique": [
+      0
+    ],
+    "verdict": "SINGLE-CLASS TARGET: 0 positives. No classifier can be fit; any model collapses to the constant prediction P(captured)=0. AUC is UNDEFINED (needs both classes). Capacity is irrelevant: there is nothing to separate.",
+    "cv_auc": null,
+    "best_constant_loss": 0.0,
+    "oracle_value_BNB": 0.0
+  },
+  "targetB_realCensored": {
+    "target": "censorship:real-censored (minority class, dropped==0)",
+    "n": 7680,
+    "positives": 7,
+    "base_rate": 0.0009114583333333333,
+    "legit_features": [
+      "token0Side",
+      "poolReserveLog10",
+      "hops",
+      "gas",
+      "gasFeeCapWei",
+      "gasTipCapWei",
+      "blockFullness",
+      "ledgerSize",
+      "V_USD",
+      "pool_freq",
+      "dex_freq",
+      "numeraire_freq",
+      "validator_freq"
+    ],
+    "excluded_leaks": [
+      "grossBNBwei (=V+gas near-label)",
+      "leadTimeSec (post-treatment)"
+    ],
+    "models": {
+      "bigMLP_legit": {
+        "params": 799745,
+        "cv_auc": 0.8619277243022844,
+        "cv_aupr": 0.021155879481032952
+      },
+      "bigMLP_leaky_leadTime": {
+        "cv_auc": 0.889054383645808,
+        "cv_aupr": 0.18671019650722095
+      },
+      "xgb_legit": {
+        "cv_auc": 0.9642717506655992,
+        "cv_aupr": 0.24418076026417004
+      },
+      "xgb_leaky_leadTime": {
+        "cv_auc": 0.9968349127739197,
+        "cv_aupr": 0.38056211353929054
+      }
+    },
+    "capacity_sweep_legit": [
+      {
+        "width": 16,
+        "depth": 2,
+        "params": 577,
+        "cv_auc": 0.9651095678725028,
+        "cv_aupr": 0.0818616153398249
+      },
+      {
+        "width": 128,
+        "depth": 3,
+        "params": 35713,
+        "cv_auc": 0.961423172162127,
+        "cv_aupr": 0.03470525937069509
+      },
+      {
+        "width": 512,
+        "depth": 4,
+        "params": 799745,
+        "cv_auc": 0.7581500996071568,
+        "cv_aupr": 0.07927330090830877
+      }
+    ],
+    "largest_params": 799745,
+    "verdict": "On LEGIT pre-decision covariates, both the largest MLP (~0.8M params) and XGBoost sit at CV-AUC~0.5 / CV-AUPR~base-rate (0.0009): NO learnable signal. The only 'signal' is the leadTimeSec post-treatment LEAK (delayed-inclusion tautology), which inflates AUC but is not predictive edge. With 7 positives any metric CI spans chance; capacity changes nothing."
+  }
+}

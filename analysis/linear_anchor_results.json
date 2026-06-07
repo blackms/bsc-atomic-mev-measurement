@@ -1,0 +1,86 @@
+{
+  "T1": {
+    "results": {
+      "Ridge": {
+        "fold_mean": 0.17717487434574228,
+        "fold_std": 0.10073961212187472,
+        "pooled": 0.18962934606013127
+      },
+      "Lasso": {
+        "fold_mean": 0.1700430377267146,
+        "fold_std": 0.10719086728857845,
+        "pooled": 0.18325799487271766
+      }
+    },
+    "meta": {
+      "n": 359,
+      "blocks": 343,
+      "features": [
+        "k",
+        "actors",
+        "logFlow",
+        "pool_freq"
+      ]
+    }
+  },
+  "T2": {
+    "results": {
+      "Ridge": {
+        "freqenc": {
+          "fold_mean": 0.09090789769608212,
+          "fold_std": 0.0027605898573343766,
+          "pooled": 0.09139995928096545
+        },
+        "onehot": {
+          "fold_mean": 0.6476857494439381,
+          "fold_std": 0.013677268181493675,
+          "pooled": 0.6481554225265578
+        }
+      },
+      "Lasso": {
+        "freqenc": {
+          "fold_mean": 0.09083372412082631,
+          "fold_std": 0.0027740711430817586,
+          "pooled": 0.0913250196561739
+        },
+        "onehot": {
+          "fold_mean": 0.648281351966857,
+          "fold_std": 0.013157999492592796,
+          "pooled": 0.648733776690626
+        }
+      }
+    },
+    "meta": {
+      "n": 7680,
+      "blocks": 1075,
+      "features_freq": [
+        "token0Side",
+        "poolReserveLog10",
+        "hops",
+        "gas",
+        "gasFeeCapWei",
+        "gasTipCapWei",
+        "blockFullness",
+        "ledgerSize",
+        "is_v3",
+        "num_wbnb",
+        "pool_freq",
+        "validator_freq"
+      ],
+      "features_onehot": [
+        "token0Side",
+        "poolReserveLog10",
+        "hops",
+        "gas",
+        "gasFeeCapWei",
+        "gasTipCapWei",
+        "blockFullness",
+        "ledgerSize",
+        "is_v3",
+        "num_wbnb",
+        "pool_onehot",
+        "validator_onehot"
+      ]
+    }
+  }
+}

@@ -1,0 +1,41 @@
+# Binaries / build artifacts
+geth
+simreplay
+*.o
+*.a
+*.so
+*.exe
+*.test
+/tmp/
+
+# Node data / logs (never commit)
+datadir/
+*.datadir
+*.log
+*.ldb
+*.sst
+LOCK
+
+# LaTeX build byproducts (keep paper.pdf, drop the rest)
+paper/*.aux
+paper/*.bbl
+paper/*.blg
+paper/*.out
+paper/*.toc
+paper/*.fls
+paper/*.fdb_latexmk
+paper/*.synctex.gz
+*.log
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp

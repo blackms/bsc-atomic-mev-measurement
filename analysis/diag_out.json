@@ -1,0 +1,49 @@
+{
+  "observed": {
+    "pooled_auc": 0.9723706503323342,
+    "pooled_aupr": 0.22303031919231814,
+    "base_rate": 0.0009114583333333333,
+    "n_positives": 7,
+    "n": 7680
+  },
+  "per_fold": [
+    {
+      "test_pos": 1,
+      "test_n": 1536,
+      "fold_auc": 0.993485342019544
+    },
+    {
+      "test_pos": 1,
+      "test_n": 1536,
+      "fold_auc": 1.0
+    },
+    {
+      "test_pos": 3,
+      "test_n": 1536,
+      "fold_auc": 0.9471624266144814
+    },
+    {
+      "test_pos": 1,
+      "test_n": 1536,
+      "fold_auc": 0.9830618892508143
+    },
+    {
+      "test_pos": 1,
+      "test_n": 1536,
+      "fold_auc": 1.0
+    }
+  ],
+  "folds_with_zero_positives": 0,
+  "permutation_null": {
+    "n_perms": 60,
+    "null_auc_mean": 0.5095005368236177,
+    "null_auc_p95": 0.6688364580812123,
+    "null_auc_max": 0.7180652007968573,
+    "p_value_obs_ge_null": 0.0
+  },
+  "bootstrap_auc_95ci": [
+    0.9178644340196335,
+    0.9970060045416476
+  ],
+  "interpretation": "If the permutation p-value is large (obs AUC is ordinary for a RANDOM 7-positive relabeling) and the bootstrap CI is huge / spans chance, the elevated pooled AUC is small-sample geometry on 7 positives, not learnable structure. The AUPR collapsing toward base rate confirms no usable ranking."
+}

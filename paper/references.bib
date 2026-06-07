@@ -1,0 +1,260 @@
+% references.bib — citations for the BSC post-PBS arbitrage measurement paper.
+% Keys match the [bracketed] cites used in 10/20/30/40/50.
+% NOTE (camera-ready): pin numeric claims (block time, MEV magnitudes, builder
+% shares, latencies, arXiv IDs/years) to the primary PDFs; some summaries differ.
+
+% ---------------------------------------------------------------------------
+% MEV foundations
+% ---------------------------------------------------------------------------
+
+@inproceedings{daian2020flashboys,
+  author    = {Daian, Philip and Goldfeder, Steven and Kell, Tyler and Li, Yunqi
+               and Zhao, Xueyuan and Bentov, Iddo and Breidenbach, Lorenz and
+               Juels, Ari},
+  title     = {Flash Boys 2.0: Frontrunning, Transaction Reordering, and
+               Consensus Instability in Decentralized Exchanges},
+  booktitle = {2020 IEEE Symposium on Security and Privacy (S\&P)},
+  year      = {2020},
+  note      = {arXiv:1904.05234},
+  url       = {https://arxiv.org/abs/1904.05234}
+}
+
+@inproceedings{qin2022quantifying,
+  author    = {Qin, Kaihua and Zhou, Liyi and Gervais, Arthur},
+  title     = {Quantifying Blockchain Extractable Value: How Dark is the Forest?},
+  booktitle = {2022 IEEE Symposium on Security and Privacy (S\&P)},
+  year      = {2022},
+  note      = {arXiv:2101.05511},
+  url       = {https://arxiv.org/abs/2101.05511}
+}
+
+@inproceedings{torres2021frontrunner,
+  author    = {Torres, Christof Ferreira and Camino, Ramiro and State, Radu},
+  title     = {Frontrunner Jones and the Raiders of the Dark Forest: An Empirical
+               Study of Frontrunning on the Ethereum Blockchain},
+  booktitle = {30th USENIX Security Symposium},
+  year      = {2021},
+  note      = {arXiv:2102.03347},
+  url       = {https://arxiv.org/abs/2102.03347}
+}
+
+@inproceedings{heimbach2022sok,
+  author    = {Heimbach, Lioba and Wattenhofer, Roger},
+  title     = {{SoK}: Preventing Transaction Reordering Manipulations in
+               Decentralized Finance},
+  booktitle = {4th ACM Conference on Advances in Financial Technologies (AFT)},
+  year      = {2022},
+  note      = {arXiv:2203.11520},
+  url       = {https://arxiv.org/abs/2203.11520}
+}
+
+% ---------------------------------------------------------------------------
+% Cyclic / graph-based arbitrage detection
+% ---------------------------------------------------------------------------
+
+@inproceedings{wang2021cyclic,
+  author    = {Wang, Ye and Chen, Yan and Wu, Haotian and Zhou, Liyi and Deng,
+               Shuiguang and Wattenhofer, Roger},
+  title     = {Cyclic Arbitrage in Decentralized Exchanges},
+  booktitle = {Companion Proceedings of the Web Conference 2022 (WWW '22)},
+  year      = {2022},
+  note      = {arXiv:2105.02784 (2021)},
+  url       = {https://arxiv.org/abs/2105.02784}
+}
+
+@article{zhang2024improved,
+  author  = {Zhang, Yu and Yan, Tao and Lin, Jianhong and Kraner, Benjamin and
+             Tessone, Claudio J.},
+  title   = {An Improved Algorithm to Identify More Arbitrage Opportunities on
+             Decentralized Exchanges},
+  journal = {arXiv preprint arXiv:2406.16573},
+  year    = {2024},
+  url     = {https://arxiv.org/abs/2406.16573}
+}
+
+@inproceedings{mclaughlin2023arbitrage,
+  author    = {McLaughlin, Robert and Kruegel, Christopher and Vigna, Giovanni},
+  title     = {A Large Scale Study of the Ethereum Arbitrage Ecosystem},
+  booktitle = {32nd USENIX Security Symposium},
+  year      = {2023},
+  url       = {https://www.usenix.org/conference/usenixsecurity23/presentation/mclaughlin}
+}
+
+% ---------------------------------------------------------------------------
+% Convex routing / optimal sizing over CFMMs
+% ---------------------------------------------------------------------------
+
+@inproceedings{angeris2020oracles,
+  author    = {Angeris, Guillermo and Chitra, Tarun},
+  title     = {Improved Price Oracles: Constant Function Market Makers},
+  booktitle = {2nd ACM Conference on Advances in Financial Technologies (AFT)},
+  year      = {2020},
+  note      = {arXiv:2003.10001},
+  url       = {https://arxiv.org/abs/2003.10001}
+}
+
+@article{angeris2021multiasset,
+  author  = {Angeris, Guillermo and Agrawal, Akshay and Evans, Alex and Chitra,
+             Tarun and Boyd, Stephen},
+  title   = {Constant Function Market Makers: Multi-Asset Trades via Convex
+             Optimization},
+  journal = {arXiv preprint arXiv:2107.12484},
+  year    = {2021},
+  url     = {https://arxiv.org/abs/2107.12484}
+}
+
+@inproceedings{angeris2022routing,
+  author    = {Angeris, Guillermo and Chitra, Tarun and Evans, Alex and Boyd,
+               Stephen},
+  title     = {Optimal Routing for Constant Function Market Makers},
+  booktitle = {Proceedings of the 23rd ACM Conference on Economics and
+               Computation (EC '22)},
+  year      = {2022},
+  note      = {arXiv:2204.05238},
+  url       = {https://arxiv.org/abs/2204.05238}
+}
+
+@inproceedings{diamandis2023routing,
+  author    = {Diamandis, Theo and Resnick, Max and Chitra, Tarun and Angeris,
+               Guillermo},
+  title     = {An Efficient Algorithm for Optimal Routing Through Constant
+               Function Market Makers},
+  booktitle = {Financial Cryptography and Data Security (FC)},
+  year      = {2023},
+  url       = {https://angeris.github.io/papers/routing-algorithm.pdf}
+}
+
+@article{diamandis2024convexflows,
+  author  = {Diamandis, Theo and Angeris, Guillermo and Edelman, Alan},
+  title   = {Convex Network Flows},
+  journal = {arXiv preprint arXiv:2404.00765},
+  year    = {2024},
+  url     = {https://arxiv.org/abs/2404.00765}
+}
+
+% ---------------------------------------------------------------------------
+% Concentrated liquidity
+% ---------------------------------------------------------------------------
+
+@techreport{adams2021uniswapv3,
+  author      = {Adams, Hayden and Zinsmeister, Noah and Salem, Moody and Keefer,
+                 River and Robinson, Dan},
+  title       = {Uniswap v3 Core},
+  institution = {Uniswap Labs},
+  year        = {2021},
+  month       = mar,
+  url         = {https://app.uniswap.org/whitepaper-v3.pdf}
+}
+
+% ---------------------------------------------------------------------------
+% Flash loans / capital-free execution
+% ---------------------------------------------------------------------------
+
+@inproceedings{qin2021flashloans,
+  author    = {Qin, Kaihua and Zhou, Liyi and Livshits, Benjamin and Gervais,
+               Arthur},
+  title     = {Attacking the {DeFi} Ecosystem with Flash Loans for Fun and Profit},
+  booktitle = {Financial Cryptography and Data Security (FC)},
+  year      = {2021},
+  note      = {arXiv:2003.03810 (2020)},
+  url       = {https://arxiv.org/abs/2003.03810}
+}
+
+% ---------------------------------------------------------------------------
+% BSC PBS regime
+% ---------------------------------------------------------------------------
+
+@article{wang2025binance,
+  author  = {Wang, Qin and Li, Ruiqiang and Yu, Guangsheng and Gramoli, Vincent and
+             Chen, Shiping},
+  title   = {{MEV} in Binance Builder},
+  journal = {arXiv preprint arXiv:2602.15395},
+  year    = {2026},
+  url     = {https://arxiv.org/abs/2602.15395}
+}
+
+@misc{bep322,
+  author       = {{BNB Chain}},
+  title        = {{BEP-322}: Builder {API} Specification for {BNB} Smart Chain},
+  howpublished = {bnb-chain/BEPs Pull Request \#322},
+  year         = {2024},
+  url          = {https://github.com/bnb-chain/BEPs/pull/322}
+}
+
+@inproceedings{zhou2021hft,
+  author    = {Zhou, Liyi and Qin, Kaihua and Torres, Christof Ferreira and
+               Le, Duc V. and Gervais, Arthur},
+  title     = {High-Frequency Trading on Decentralized On-Chain Exchanges},
+  booktitle = {2021 IEEE Symposium on Security and Privacy (SP)},
+  year      = {2021},
+  pages     = {428--445},
+  note      = {arXiv:2009.14021; first to formalize and quantify sandwich attacks}
+}
+
+@article{gogol2026sandwich,
+  author    = {Gogol, Krzysztof and Schneider, Manvir and Gorzny, Jan and
+               Tessone, Claudio},
+  title     = {How to Serve Your Sandwich? {MEV} Attacks in Private {L2} Mempools},
+  journal   = {arXiv preprint arXiv:2601.19570},
+  year      = {2026},
+  note      = {attacker-profitability model for CPMMs and concentrated-liquidity
+               AMMs (Uniswap/Pancake v3); derives the optimal sandwich strategy}
+}
+
+@misc{bnbchain2025gwa,
+  author       = {{BNB Chain}},
+  title        = {How the Goodwill Alliance Slashed Sandwich Attacks by 95\%},
+  year         = {2025},
+  howpublished = {\url{https://www.bnbchain.org/en/blog/how-the-goodwill-alliance-slashed-sandwich-attacks-by-95}},
+  note         = {BNB Chain self-reported; GWA-aligned builders filter sandwich-pattern bundles, validators enforce. Figures (~140K to <1K daily attacks) are operator-reported.}
+}
+
+@misc{blocksec2025pbs,
+  author       = {{BlockSec}},
+  title        = {How is the Performance of {BSC} after Full Implementation of {PBS}?},
+  year         = {2025},
+  howpublished = {\url{https://blocksecteam.medium.com/how-is-the-performance-of-bsc-after-full-implementation-of-pbs-f720114d6fdd}},
+  note         = {Reports post-PBS builder concentration (duopoly) and trend toward monopoly.}
+}
+
+@inproceedings{grinsztajn2022tabular,
+  author    = {Grinsztajn, L\'eo and Oyallon, Edouard and Varoquaux, Ga\"el},
+  title     = {Why Do Tree-Based Models Still Outperform Deep Learning on Typical Tabular Data?},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS) Datasets and Benchmarks Track},
+  year      = {2022},
+  note      = {arXiv:2207.08815}
+}
+
+@inproceedings{babel2023lanturn,
+  author    = {Babel, Kushal and Javaheripi, Mojan and Ji, Yan and Kelkar, Mahimna
+               and Koushanfar, Farinaz and Juels, Ari},
+  title     = {Lanturn: Measuring Economic Security of Smart Contracts Through
+               Adaptive Learning},
+  booktitle = {Proceedings of the 2023 ACM SIGSAC Conference on Computer and
+               Communications Security (CCS '23)},
+  year      = {2023},
+  pages     = {1212--1226},
+  publisher = {ACM},
+  address   = {Copenhagen, Denmark},
+  doi       = {10.1145/3576915.3623204},
+  note      = {ePrint 2023/1338; black-box adaptive-learning optimizer whose
+               output transactions execute on-chain without modification on a
+               simulation framework that runs over real blockchain state and
+               contract bytecode; evaluated on Sushiswap/UniswapV2/V3/AaveV2 for
+               sandwich, arbitrage, backrun. Nearest executing (non-analytic)
+               prior art; per-target rather than per-block-census.},
+  url       = {https://eprint.iacr.org/2023/1338}
+}
+
+@article{chi2024remeasuring,
+  author  = {Chi, Tianyang and He, Ningyu and Hu, Xiaohui and Wang, Haoyu},
+  title   = {Remeasuring the Arbitrage and Sandwich Attacks of Maximal
+             Extractable Value in Ethereum},
+  journal = {arXiv preprint arXiv:2405.17944},
+  year    = {2024},
+  note    = {Post-Merge Ethereum measurement; profitability-identification
+             algorithm and robust detection for arbitrage and sandwich MEV
+             (~6.33M arbitrages, ~3.02M sandwiches). Log/heuristic detection,
+             not re-execution -- a measurement/taxonomy comparator for \S2.},
+  url     = {https://arxiv.org/abs/2405.17944}
+}

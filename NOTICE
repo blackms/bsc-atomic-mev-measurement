@@ -1,0 +1,10 @@
+This repository is an independent academic research artifact. It is NOT
+affiliated with, sponsored by, or endorsed by BNB Chain, Binance, the
+go-ethereum project, or any builder or relay named herein.
+
+The Go packages under `simengine/` and `strategy/` are derivative works of
+go-ethereum / bnb-chain/bsc (https://github.com/bnb-chain/bsc) and are
+distributed under the GNU General Public License v3.0; see LICENSE.
+
+The instrument is strictly read-only: it simulates and measures on a copy of
+node state and never builds, signs, or submits a transaction.
