@@ -8,8 +8,8 @@
 // LIVE node state at the parent block, then compares the simulated receipts and
 // logs against the block's REAL stored receipts. This validates the SimEngine
 // against real mainnet blocks using the node's own state, side-stepping the
-// Pebble lock and missing state-history freezer that would block a standalone
-// out-of-process replay tool.
+// Pebble lock and missing state-history freezer that block the standalone
+// cmd/simreplay tool.
 //
 // The self-test is strictly READ-ONLY: it executes only on a copy of the state
 // (state.Copy()), never commits, and never mutates the blockchain. Every

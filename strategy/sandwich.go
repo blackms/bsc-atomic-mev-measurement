@@ -378,6 +378,51 @@ func SandwichNet(frontrunIn, gross, gasPriceWei *big.Int, gasUnits, flashBps uin
 }
 
 // ---------------------------------------------------------------------------
+// Backrun (single-leg) gas + net-profit gate.
+// ---------------------------------------------------------------------------
+
+// BackrunGasUnits is the assumed gas budget for the attacker's SINGLE backrun
+// transaction (one round-trip swap that exploits the price the victim already
+// moved). Unlike a sandwich (two router txs) a backrun is one tx, so it is half
+// the SandwichGasUnits budget per the same per-leg model. A V3 backrun (which may
+// cross ticks) is heavier than a V2 one.
+func BackrunGasUnits(isV3 bool) uint64 {
+	per := uint64(gasBaseUnits + gasPerV2Hop) // V2 swap ~120k
+	if isV3 {
+		per = uint64(gasBaseUnits + gasPerV3Hop) // V3 exactInputSingle ~150k
+	}
+	return per
+}
+
+// BackrunNet assembles the net-profit gate for a SINGLE-leg backrun: net = gross
+// - gasUnits*gasPrice - bid. There is NO flash fee (the attacker spends its own
+// inventory for one tx; no borrowed-input notional) and NO frontrun, so the
+// SandwichEval is returned with FrontrunIn=0 and FlashFee=0 for a uniform
+// reporting shape with the sandwich path. gross comes from OptimalFrontrun-style
+// search bound to the ground-truth 1-leg backrun; gasUnits from BackrunGasUnits.
+func BackrunNet(gross, gasPriceWei *big.Int, gasUnits uint64, builderBid *big.Int) SandwichEval {
+	gr := orZero(gross)
+	gp := orZero(gasPriceWei)
+	bid := orZero(builderBid)
+
+	gasCost := new(big.Int).Mul(new(big.Int).SetUint64(gasUnits), gp)
+
+	net := new(big.Int).Set(gr)
+	net.Sub(net, gasCost)
+	net.Sub(net, bid)
+
+	return SandwichEval{
+		FrontrunIn:  big.NewInt(0),
+		GrossProfit: new(big.Int).Set(gr),
+		GasCost:     gasCost,
+		FlashFee:    big.NewInt(0),
+		BuilderBid:  new(big.Int).Set(bid),
+		NetProfit:   net,
+		Profitable:  net.Sign() > 0,
+	}
+}
+
+// ---------------------------------------------------------------------------
 // Victim detection / decoding from logs.
 // ---------------------------------------------------------------------------
 

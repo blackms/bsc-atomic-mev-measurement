@@ -457,8 +457,18 @@ func (e *SimEngine) optimalFrontrunAny(preState *state.StateDB, cc simChainConte
 	}
 
 	frontrun, gross = strategy.OptimalFrontrun(probe, seeds, hi)
+	// Nil guard (realizability-per-victim-nil-pointer-fix): a nil gross from the
+	// search would panic at .Sign(); treat it as "no positive opp" so the victim
+	// is skipped gracefully (the caller's realizability path increments
+	// rzSkippedNilResult). frontrun is also normalised to zero in that case.
+	if gross == nil {
+		return zero, zero, gasUnits
+	}
 	if gross.Sign() <= 0 {
 		return zero, zero, gasUnits
+	}
+	if frontrun == nil {
+		frontrun = zero
 	}
 	return frontrun, gross, gasUnits
 }

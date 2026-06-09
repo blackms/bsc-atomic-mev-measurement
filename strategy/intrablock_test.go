@@ -3,7 +3,7 @@
 //
 // intrablock_test.go is the unit proof for the v3 PER-SWAP intra-block backrun
 // detector (simengine/dryrun_intrablock.go). It demonstrates the core claim of
-// the intra-block detector: a cross-DEX price gap that exists in the
+// v3 (paper/90-lab-notebook.md): a cross-DEX price gap that exists in the
 // TRANSIENT state right after a victim swap — and is therefore detectable
 // intra-block — would be MISSED by post-block evaluation because competing
 // arbers re-align the two pools back to parity before the block ends.

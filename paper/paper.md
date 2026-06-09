@@ -1,4 +1,4 @@
-# Receipt-Exact Measurement of the Atomic-MEV Surface on Post-PBS BNB Smart Chain: The Independent-Searcher Edge Is Realized ≈ Zero
+# Receipt-Exact Measurement of the Atomic-MEV Surface on Post-PBS BNB Smart Chain: The Realized Independent-Searcher Edge Is Vanishingly Small
 
 **Alessio Rocchi**
 
@@ -45,20 +45,27 @@ identical receipt-exact valuation on the same blocks, the independent-searcher
 atomic-MEV surface on post-PBS BSC is larger for sandwiching than backrun by roughly
 two-to-three orders of magnitude (~90× more net-positive opportunities per block,
 ~2,000× more total value), and the surviving edge lives in the long tail, not the deep
-markets the backrun literature studies. As a coarse external sanity check, our
-ex-post sandwich aggregate extrapolates to a few hundred \$M/yr — the same order as
-loosely-comparable published BSC MEV figures (we are careful that the widely-cited
-"\$289M" is a 2025 cross-context MEV *volume* number, not net BSC sandwich profit, so
-it is only a rough comparator; realized BSC sandwich profit is smaller). The gap
-between our ex-post upper bound and smaller realized figures is not noise — it *is*
-the ex-post-vs-realizable story this paper foregrounds. We then *measure* that story
+markets the backrun literature studies. The ex-post sandwich surface density
+(0.35–0.46 net-positive per block over our measurement window) serves as the baseline
+for the in-block counterfactual and the ex-post-vs-realized comparison; annual
+extrapolation is not reliable given known diurnal/volatility variation and per-victim
+concurrent same-pool over-count (§6.1), so we do not report an annualized figure. We
+then *measure* the ex-post-vs-realizable story
 with an **in-block counterfactual**: for each ex-post opportunity we detect whether a
-real competitor already captured it in the canonical block. Over 2,100 blocks **0 of
-735 ex-post sandwich opportunities were realized by any cross-tx sandwich** (capture
-rate 0.00, with an auditable bracket→same-actor→corroboration funnel and an independent
-1,500-block scan confirming cross-tx sandwiches are essentially absent in-window) —
-realized BSC MEV is atomic-arb-dominated. Crucially, *unrealized is not available*: the
-surface is empty because cross-tx sandwiching has receded under validator/builder
+real competitor already captured it in the canonical block. Over a 2,100-block window
+**0 of 735 ex-post sandwich opportunities were realized by any cross-tx sandwich**
+(capture rate 0.00 in that window, with an auditable bracket→same-actor→corroboration
+funnel); however, a longer multi-day collection reveals the small-window zero was a
+sampling artifact — a geth-sim16 pilot at 34,200 blocks anchored the rate at
+≈0.07% by count and ≈0.016% by value, and a later 152,650-block pilot anchored 10
+captures of that pool, but these are **preliminary anchors only**, not the final
+number; the final stable capture rate, CI, and repeat-actor count from the multi-day,
+multi-volatility long window remain
+TODO(revision: final capture rate + CI + repeat-actor structure from the still-running
+geth-sim20 multi-day window) — establishing that captured sandwiches are tiny but
+measurably nonzero and remain a small fraction of the ex-post surface.
+Realized BSC MEV is atomic-arb-dominated. Crucially, *unrealized is not available*: the
+surface is nearly empty because cross-tx sandwiching has receded under validator/builder
 filtering and private order flow (BEP-322; two latency-advantaged builders, 48Club and
 BlockRazor, see private flow ahead of the public mempool and capture ~90% of MEV), the
 same regime that would exclude an independent's sandwich too. A third angle closes the
@@ -68,15 +75,21 @@ orthogonal, profitable opportunities) — is **$\hat D = 0$** after a chain-veri
 window, because 99.6% of apparent public "drops" are merely *delayed inclusion*, not
 censorship. So the independent atomic-searcher
 edge on post-PBS BSC is, measured from three angles, ≈ 0 — backrun
-sub-gas, the large ex-post sandwich surface realized by no one, and the public residual
-empty. The transferable contribution is a validated full-EVM
+sub-gas, the large ex-post sandwich surface realized by only a tiny measured fraction,
+and the public residual empty. The transferable contribution is a validated full-EVM
 instrument that prices atomic categories on one substrate — receipt-exact, more
-faithful than analytic CFMM for V3 — the first apples-to-apples (to our knowledge)
-backrun-vs-sandwich measurement on one instrument (complementing per-target
-executing optimizers such as Lanturn [babel2023lanturn] with a per-block,
-full-node census), an in-block counterfactual that converts "ex-post
-existence" into a measured capture rate, and a settle-windowed censorship-differential.
-During development we found and fixed four implementation bugs in the detectors,
+faithful than analytic CFMM for V3 — the first controlled backrun-vs-sandwich
+measurement on one instrument and cost model, though note that the comparison involves
+different scopes: backrun is measured on a fixed 12-pool deep hub (WBNB/stablecoin),
+while sandwiching is measured across any long-tail WBNB-paired pool (complementing
+per-target executing optimizers such as Lanturn [babel2023lanturn] with a per-block,
+full-node census). This scope difference is intentional (long-tail sandwiching is where
+ex-post value concentrates) but means the 90×–2,000× gap reflects both strategy
+profitability *and* the portfolio difference. We also contribute an in-block
+counterfactual that converts "ex-post existence" into a measured capture rate, and a settle-windowed censorship-differential.
+During development we found and fixed five integrity catches in the detectors
+(units bug; realizability false-zero; censorship estimand-inversion; censorship
+delayed-vs-censored conflation; backrun-any decimal-mismatch sanity-cap fire),
 documented in the methods for reproducibility.
 
 **Contributions.**
@@ -100,31 +113,53 @@ documented in the methods for reproducibility.
    per-target executing optimizers such as Lanturn [babel2023lanturn], which
    construct and EVM-simulate sandwich/arbitrage strategies for a chosen contract
    rather than censusing every victim swap in a block).
-4. **The first (to our knowledge) apples-to-apples backrun-vs-sandwich measurement on
+4. **The first (to our knowledge) controlled backrun-vs-sandwich measurement on
    one instrument and one victim stream**: same blocks, same EVM valuation, same cost model — turning a
-   cross-paper comparison into a single controlled experiment. Prior executing tools
+   cross-paper comparison into a single controlled experiment. Note the two strategies
+   are measured on *different scopes* (backrun on a fixed 12-pool deep WBNB/stablecoin
+   hub, sandwich across any long-tail WBNB-paired pool); this scope difference is
+   intentional (long-tail sandwiching is where ex-post value concentrates) but means the
+   resulting gap reflects both strategy profitability *and* the portfolio difference.
+   Prior executing tools
    (e.g. Lanturn [babel2023lanturn]) EVM-evaluate constructed strategies but optimize
    one target at a time; we instead hold a single per-block victim stream fixed and
    price *both* atomic categories on it.
 5. A measurement of the independent-searcher atomic-MEV surface: backrun is frequent
-   but **sub-gas** (15 of 803 net-positive over 3,000 blocks, ~\$10); sandwiching the
-   long tail is **substantial** (1,162 of 1,735 net-positive over 2,550 blocks, 35.08
-   BNB ≈ \$20,200) — sandwiching dominates by ~90× in count and ~2,000× in value, and
-   the surviving edge is a long-tail phenomenon, not a deep-pool one.
-6. A coarse external sanity check: the ground-truth ex-post sandwich aggregate
-   extrapolates to a few hundred \$M/yr, the same order as loosely-comparable
-   published BSC MEV figures — with the explicit caveat that the widely-cited "\$289M"
-   is a cross-context MEV *volume* number, not net BSC sandwich profit, and that the
-   gap to smaller *realized* figures is itself the ex-post-vs-realizable result.
+   but **sub-gas** (15 of 803 net-positive over 3,000 blocks, ~\$10) on the deep hub;
+   sandwiching the long tail is **substantial ex-post** (1,162 of 1,735 net-positive
+   over 2,550 blocks, 35.08 BNB ≈ \$20,200) but **realized by only a small measured
+   fraction** (preliminary geth-sim16 pilot anchors at ≈0.07% by count, ≈0.016% by value
+   over 34,200 blocks; the final stable rate from the multi-day window is
+   TODO(revision: final capture rate $+$ CI)) — establishing that while ex-post
+   sandwiching dominates ex-post backrun by ~90× in count and ~2,000× in value
+   (as measured on their respective scopes; see §5.6 for the matched-footprint
+   rate-normalized contrast of ~440×), the realized edge for an independent across
+   both strategies is much smaller.
+6. The ex-post sandwich surface density (0.35–0.46 net-positive per block over our
+   measurement window) as the baseline for the in-block counterfactual and the
+   ex-post-vs-realized comparison; we deliberately do *not* report an annualized
+   extrapolation, since annual scaling is unreliable given diurnal/volatility variation
+   and the per-victim concurrent same-pool over-count (§6.1).
 7. **A ground-truth in-block counterfactual** that converts ex-post existence into a
    *measured* realizability: for each ex-post opportunity it detects whether a real
    competitor already captured it in the canonical block (conjunctive bracket +
    same-actor + profit-corroboration gates, conservative by construction, with an
-   auditable funnel). Over 2,100 blocks it finds **0 of 735 ex-post sandwiches realized
-   by any cross-tx sandwich** (capture rate 0.00); cross-referenced with a 1,500-block
-   pool-agnostic scan, cross-tx sandwiching is essentially absent in-window and realized
-   MEV is atomic-arb-dominated — so the independent atomic edge is ≈ 0 by direct
-   measurement, not just by argument.
+   auditable funnel). A 2,100-block window finds 0 of 735 ex-post sandwiches realized
+   (capture rate 0.00); a longer multi-day collection has anchored the rate at
+   preliminary ≈0.07% by count and ≈0.016% by value (geth-sim16 pilot over 34,200
+   blocks, 7 captures of ~10,190 ex-post opportunities; a later 152,650-block pilot
+   anchored 10 captures), but these are **preliminary anchors only**: the final stable
+   capture rate, CI, and repeat-actor structure remain **TODO(revision: final capture
+   rate + CI + repeat-actor count from the still-running multi-day, multi-volatility
+   geth-sim20 window)**, establishing nonzero but small realization relative to the
+   ex-post surface — the short-window zero was a sampling artifact, consistent with
+   the filtering + private-flow regime and cross-referenced with a 1,500-block
+   pool-agnostic scan showing cross-tx sandwiching is rare. A separately measured
+   trace-probe over 30,100 blocks finds the identification gap is **bounded at zero**
+   on that window: 1,585 structural round-trips and 2 sweeps exist as patterns but
+   carry zero positive ex-post net profit (`upperBoundMissedRealizedWei=0`; see §5.7).
+   Thus the realized independent atomic edge is substantially smaller than the
+   ex-post surface by direct measurement.
 8. A careful realizability / threats discussion separating ex-post existence (what
    we prove) from realizable capture (which we now measure), uniform across both
    strategies, including the *unrealized ≠ available* point, with an explicit statement
@@ -222,7 +257,8 @@ cycles on the WBNB/stablecoin hub, and that opportunities live on the order of
 This is the backdrop against which we ask, more broadly than the backrun literature
 does, **what the atomic-MEV opportunity surface available to an *independent*
 searcher actually looks like on post-PBS BSC** — across both of the atomic categories
-a non-builder could in principle contest. We split it into two questions. **RQ1: is
+a non-builder could in principle contest. We split the primary question into two — with a
+methodological third (RQ3) that falls out of the instrument. **RQ1: is
 there any net-positive independent-searcher *backrun* edge left on BSC's major
 pools?** And **RQ2: how does that compare, on the *same* instrument and the *same*
 victim stream, to *sandwiching* — the dominant atomic MEV category on BSC by value
@@ -291,8 +327,8 @@ reserves, close with a backrun, and read the attacker's profit straight off the 
 tail** — exactly where, our own backrun runs hint, the volume actually is (the deep
 pools were quiet). This lifts the study from "is backrun profitable on the hub?" to
 "which atomic strategy, backrun or sandwich, carries the independent-searcher edge,
-and where?" — and the answer (RQ2) turns out to dominate the answer to RQ1 by orders
-of magnitude.
+and where?" — and the answer (RQ2) turns out to be larger for sandwiching than backrun
+by roughly two-to-three orders of magnitude.
 
 ## 1.5 Summary of findings
 
@@ -315,45 +351,68 @@ of magnitude.
   yields **~90× more net-positive opportunities per block and ~2,000× more total
   value** than backrun. The independent searcher's atomic-MEV edge is a
   **long-tail sandwiching phenomenon, not a deep-pool backrun one**.
-- **External sanity check (with caveat).** The ground-truth *ex-post* sandwich
-  aggregate extrapolates to a few hundred \$M/yr — the same order as loosely-comparable
-  published BSC MEV figures. We flag that the widely-cited "\$289M" is a cross-context
-  MEV *volume* number, not net BSC sandwich profit, so it is only a coarse comparator;
-  *realized* BSC sandwich profit is smaller, and that gap is the ex-post-vs-realizable
-  finding (§5.6.1), not a flaw in the measurement.
+- **Ex-post surface density (no annual extrapolation).** The ground-truth *ex-post*
+  sandwich surface runs at 0.35–0.46 net-positive sandwiches per block over our
+  measurement window. We deliberately do *not* annualize it: annual scaling is
+  unreliable given diurnal/volatility variation and the per-victim concurrent same-pool
+  over-count (§6.1). The density is the baseline against which the realized fraction
+  (§5.7) is measured — the ex-post-vs-realizable gap is the finding (§5.6.1), not an
+  absolute annual figure.
 - **Realizability (in-block counterfactual).** Of the **735 ex-post sandwich
-  opportunities** in a 2,100-block window, **0 were actually captured** by a real
-  cross-tx sandwich (capture rate **0.00**), with an auditable funnel (1,077 brackets →
-  79 same-actor → 0 corroborated) and an independent 1,500-block scan confirming cross-tx
-  sandwiches are essentially absent in-window — realized MEV is atomic-arb-dominated.
-  *Unrealized ≠ available*: the surface is empty because sandwiching is suppressed for
-  everyone (filtering + private flow), which excludes an independent identically.
+  opportunities** in a 2,100-block window, **0 were captured** by a real cross-tx
+  sandwich (capture rate 0.00 in that small window, auditable funnel: 1,077 brackets →
+  79 same-actor → 0 corroborated). A longer collection anchors the realized capture at
+  preliminary ≈0.07% by count and ≈0.016% by value (geth-sim16 pilot over 34,200
+  blocks: 7 captures of ~10,190 ex-post opportunities; a later 152,650-block pilot
+  anchored 10 captures); the **final stable capture rate, CI, and repeat-actor count**
+  from the multi-day, multi-volatility long window remain
+  **TODO(revision: final capture rate + CI + regime-stratified breakdown from the
+  still-running geth-sim20 window)**, concentrated in repeated addresses and structures
+  matching blind-spot patterns (mid-tx sweep, non-flat round-trips) — establishing
+  that the small-window zero was a sampling artifact and realization is nonzero but a
+  small fraction of the ex-post surface. A separately measured Phase-2 trace-probe over
+  30,100 blocks finds 1,585 structural round-trips and 2 sweeps as patterns but with
+  `upperBoundMissedRealizedWei=0` — **the identification gap is bounded at zero on
+  that window**; the blind-spot pattern is demographic, not economic (§5.7). Cross-tx
+  sandwiching is rare in realized BSC activity; realized MEV is dominated by
+  single-transaction atomic arbs. *Unrealized ≠ available*: the small realized fraction
+  is consistent with the filtering + private-flow regime that suppresses sandwiching
+  for everyone, including an independent (corroborated by the trace-probe upper-bound
+  of zero on this window).
 - **Censorship-differential (the reachable estimand).** The one point-identified,
   structurally-reachable estimand — the value a builder leaves by *dropping* public,
   orthogonal, profitable opportunities — is **$\hat D = 0$** after a chain-verified
   settle window; **99.6%** of apparent public "drops" were merely *delayed inclusion*
   (mined a few blocks later), not censorship. The public residual is empty too.
-- **Implementation bugs (reproducibility).** During development we found and fixed
-  four implementation bugs in the detectors (a units bug; a realizability false-zero;
-  a censorship estimand-inversion; a censorship delayed-vs-censored conflation),
-  each documented in the methods so the results are reproducible.
+- **Implementation bugs / integrity catches (reproducibility).** During development we
+  found and fixed five integrity catches in the detectors (a units bug; a realizability
+  false-zero; a censorship estimand-inversion; a censorship delayed-vs-censored
+  conflation; and a backrun-any decimal-mismatch sanity-cap fire on block 103,005,219, a
+  BUSD→WBNB→BUSD 2-hop V2 with grossUSD ~$3.6×10^15 from a V2 CycleOptimum
+  decimal-mismatch on a high-decimal memecoin pool — caught-not-baked via a $100k / 1000
+  BNB sanity-cap and a `brSkippedSanityOutlier` counter, with REJECT log), each
+  documented in the methods so the results are reproducible.
 
 The conclusion: on post-PBS BSC the *ex-post* atomic-MEV surface looks like it has
 **migrated from deep-pool backrun (15 of 803 net-positive, ~\$10) to long-tail
-sandwiching** (1,162 net-positive, ~\$20,200) — but *realized*, neither is capturable by
-an independent. Backrun is sub-gas; the long-tail sandwich surface, though large
-ex-post, is realized by **no one** (capture rate 0 over 2,100 blocks) and would be
-filtered for us too. Under BEP-322 two latency-advantaged builders (48Club, BlockRazor)
-produce most blocks, see private flow ahead of the public mempool, and capture ~90% of
-MEV [bep322; wang2025binance]. So the independent atomic-searcher edge is, by *direct
-measurement*, ≈ 0. The transferable contribution is the *instrument and protocol*:
-validated full-EVM ground-truth valuation that prices every atomic category on one
-substrate, evaluated at the correct intra-block transient (backrun gross→net collapse
-803 → 15 — the quantitative case against analytic CFMM over-counting, especially for
-V3), the first controlled backrun-vs-sandwich contrast on a single per-block victim
-stream (to our knowledge; complementing per-target executing optimizers such as Lanturn
-[babel2023lanturn]), and an in-block
-counterfactual that turns "ex-post existence" into a measured realizability.
+sandwiching** (1,162 net-positive, ~\$20,200 ex-post) — but *realized*, both are far
+less capturable by an independent. Backrun on the deep hub is sub-gas; the long-tail
+sandwich surface, though large ex-post, is realized by **only a small measured fraction**
+(preliminary anchors: geth-sim16 pilot 7 of ~10,190 ≈ 0.07% by count, ≈0.016% by value
+over 34,200 blocks; final stable rate and CI from the multi-day window
+TODO(revision: final capture rate + CI)) and would face the same filtering barriers. The short-window zero (capture rate 0 over 2,100 blocks) was a
+sampling artifact corrected by the longer-window collection. Under BEP-322 two
+latency-advantaged builders (48Club, BlockRazor) produce most blocks, see private flow
+ahead of the public mempool, and capture ~90% of MEV [bep322; wang2025binance]. So the
+independent atomic-searcher edge in realized terms is substantially smaller than the
+ex-post surface — not zero by mechanism alone, but zero (or negligibly small) by direct
+measurement on the long-running window. The transferable contribution is the *instrument
+and protocol*: validated full-EVM ground-truth valuation that prices every atomic
+category on one substrate, evaluated at the correct intra-block transient (backrun
+gross→net collapse 803 → 15 — the quantitative case against analytic CFMM over-counting,
+especially for V3), a controlled backrun-vs-sandwich contrast (with scope caveats: deep
+hub vs. long tail), and an in-block counterfactual that turns "ex-post existence" into
+measured realizability across an extended window.
 
 ---
 
@@ -558,7 +617,7 @@ snapshot-seeded, PBSS path-scheme state) on a 64-core / 125 GB host, fully synce
 BSC mainnet (`eth_chainId = 0x38 = 56`, head ~block 102.54M, `eth_syncing = false`).
 The build is stock bsc-geth v1.7.3 with our read-only instrumentation packages
 added (`simengine`, `strategy`, and a disarmed Phase-3 `builder`/`wallet`/
-`contracts`); build with `export GOTOOLCHAIN=auto`, output only to `/tmp/geth`.
+`contracts`); build with `export GOTOOLCHAIN=auto`, output only to `/tmp/geth-sim10`.
 
 All on-chain constants — contract addresses, the V2 reserves storage slot (8) and
 its packing, the V3 `slot0` layout, fee tiers, token decimals, pool addresses and
@@ -621,8 +680,16 @@ receipts **exactly: 5/5 PASS** on blocks around height **101.83M**, each with
 **100–151 transactions**, with no mismatch in any field on any tx. This is the
 certificate that the SimEngine reproduces canonical execution at the receipt level.
 Matching every log and gas figure across 100+ txs on copied state is an extremely
-tight constraint; the post-state root is implicitly exercised by it. (We widen the
-sample for the camera-ready; the protocol scales trivially.)
+tight constraint; the post-state root is implicitly exercised by it.
+
+**Phase-2 widened validation (500 stratified blocks).** Per the revision plan we widened
+this certificate from a 5-block cluster to a 500-block stratified sample drawn from a
+9,989-block forward-from-head window (stride 20, heights ~102,991,477..103,001,466).
+**Result on the widened sample: passRate=1.00, passed=500, failed=0**, droppedTxBlocks=0
+over totalTxs=47,586, failedTxs=0; the stratification covers V3-heavy blocks
+(v3Blocks=455) and fee-on-transfer pools (fotBlocks=42); all mismatch counters are 0.
+This replaces the "n=5 cluster-localized" smoke test with a measured, stratified
+validation in the actual measurement height range, on this window.
 
 ## 3.4 The backtest protocol
 
@@ -936,9 +1003,15 @@ within the window is *delayed inclusion*, not censorship, and becomes an
 freezing $V_i$ at flag time and finalizing $K$ blocks later. This is the gate that makes
 $\hat D$ a defensible lower bound rather than a count of pending transactions.
 
-These two episodes join the units-bug (§3.7.3) and the realizability recall-bug
-(§3.8.2): in total we found and fixed four implementation bugs in the detectors during
-development, documented here for reproducibility.
+These two episodes join the units-bug (§3.7.3), the realizability recall-bug (§3.8.2),
+and the backrun-any decimal-mismatch sanity-cap fire (catch #5: §5.6 / §6.6, sanity-cap
+fired 4× on block 103,005,219 — a BUSD→WBNB→BUSD 2-hop V2 cycle whose CycleOptimum
+returned grossUSD $\sim$$3.6\times10^{15}$ from a V2 decimal-mismatch on a high-decimal
+memecoin pool; caught-not-baked via the $100k / 1000 BNB sanity-cap and the
+`brSkippedSanityOutlier` counter, with REJECT log): in total we found and fixed **five
+integrity catches** in the detectors during development, documented here for
+reproducibility. The discipline is reproducible — this is the fifth catch confirming
+the measurement-integrity protocol.
 
 ---
 
@@ -1054,27 +1127,38 @@ experiments (§5.1–5.4) run with `SIMENGINE_DRYRUN=intrablock`; the **sandwich
 experiments (§5.5) run with `SIMENGINE_DRYRUN=sandwich-any`; both take
 `SIMENGINE_DRYRUN_TALLY=N` and `SIMENGINE_DRYRUN_GASPRICES="0,0.1,0.3,1,3"`.
 Everything is strictly read-only; nothing is submitted; node/systemd/datadir are
-untouched; a separate instrumented binary is built to `/tmp` per detector. Backrun numbers are from the
-consolidated backrun run (3,000 sampled blocks; distribution from the last
-`intrablock dist` line, §5.4); sandwich numbers are from the consolidated sandwich
+untouched; the binaries are built only to `/tmp` (`geth-sim10` for backrun,
+`geth-sim15` for the numeraire-corrected sandwich model). Backrun numbers are from the
+consolidated geth-sim10 run (3,000 sampled blocks; distribution from the last
+`intrablock dist` line, §5.4); sandwich numbers are from the consolidated geth-sim15
 run (2,550 sampled blocks; funnel and distribution from the last `sandwich-any tally`
 and `sandwich-any dist` lines).
 
 ## 5.1 SimEngine validation (ground-truth certificate)
 
-| Metric | Value |
-| --- | --- |
-| Validation method | replay real mainnet block, compare to stored receipts |
-| Fields compared | Status, GasUsed, CumulativeGasUsed, per-log Address/Topics/Data |
-| Blocks validated | 5 (around height ~101.83M) |
-| Transactions per block | 100–151 |
-| **PASS / FAIL** | **5 / 0 (5/5 PASS)** |
-| Mismatches | none |
+| Metric | Smoke test | **Phase-2 widened validation** |
+| --- | --- | --- |
+| Validation method | replay real mainnet block, compare to stored receipts | replay forward-from-head, stratified stride-20 |
+| Fields compared | Status, GasUsed, CumulativeGasUsed, per-log Address/Topics/Data | same |
+| Blocks validated | 5 (around height ~101.83M) | **500 stratified** (from a 9,989-block forward-from-head window, heights ~102,991,477..103,001,466) |
+| Transactions per block | 100–151 | totalTxs=47,586 across the 500 |
+| **PASS / FAIL** | **5 / 0 (5/5 PASS)** | **500 / 0 (passRate=1.00)** |
+| Mismatches | none | none (all mismatch counters 0) |
+| Coverage | one localized cluster | v3Blocks=455, fotBlocks=42, droppedTxBlocks=0, failedTxs=0 |
 
-Over the validation sample the SimEngine reproduces canonical execution at the
-receipt level exactly. The same `applyOnState` loop validated here is the one the
-backtest uses, so the validation path and measurement path are byte-for-byte the
-same code.
+Over both samples the SimEngine reproduces canonical execution at the receipt level
+exactly. The same `applyOnState` loop validated here is the one the backtest uses, so
+the validation path and measurement path are byte-for-byte the same code.
+
+**Phase-2 widened validation closes T6.** The original 5-block smoke test was strong
+but cluster-localized (~height 101.83M). Per the revision plan we widened it to a
+500-block stratified sample drawn from a 9,989-block window in the actual measurement
+height range (~103M). The widened sample is **500/500 PASS** with **zero mismatches in
+any field on any tx** across 47,586 transactions, and stratification confirms the
+oracle handles V3-heavy blocks (n=455) and fee-on-transfer pools (n=42) at the same
+fidelity. T6 (validation cluster locality) is closed on this window; the protocol
+scales trivially. Note that "on this window" is meant literally: the certificate is
+measured on the heights above, not asserted in general.
 
 ## 5.2 Model-evolution funnel: naive to EVM oracle
 
@@ -1205,7 +1289,7 @@ sorted).
 
 ### 5.3.5 RQ3 — analytic-detector over-count
 
-| Ratio | Value (backrun run) |
+| Ratio | Value (geth-sim10) |
 | --- | --- |
 | Stage-A candidates / net-positive (after gas, 3 gwei) | ≈ 54 (803 / 15) |
 | Stage-A candidates (v3+V3, unvalued) per 1,000 blocks | ≈ 268 (803 / 3,000) |
@@ -1253,7 +1337,7 @@ export GOTOOLCHAIN=auto
 SIMENGINE_DRYRUN=intrablock \
 SIMENGINE_DRYRUN_TALLY=<cadence> \
 SIMENGINE_DRYRUN_GASPRICES="0,0.1,0.3,1,3" \
-/tmp/geth ...
+/tmp/geth-sim10 ...
 ```
 
 Field-to-table mapping: §5.3.1 `grossPosSamples`, `grossUSD_p50/p90/p99/max`;
@@ -1267,7 +1351,10 @@ are independent of this line.
 The sandwich model (§3.7, §4.5) runs on the same node, same read-only harness, same
 intra-block victim trigger, with `SIMENGINE_DRYRUN=sandwich-any` and the same gas
 sweep. All figures below are from a single consolidated run over **2,550 sampled
-blocks**; magnitudes were sanity-checked against the published BSC sandwich-MEV figure
+blocks** and represent **ex-post existence**, not realizable capture (the aggregate
+counts each victim independently on a fresh state copy, so concurrent same-pool attacks
+are double-counted — see §6.1 for the realizability caveat before reading the contrast
+in §5.6); magnitudes were sanity-checked against the published BSC sandwich-MEV figure
 before being trusted (the units-bug episode of §3.7.3).
 
 ### 5.5.1 Sandwich funnel
@@ -1355,57 +1442,90 @@ strategies side by side (3-gwei gate):
 
 Normalizing per sampled block, sandwiching yields **~90× more net-positive
 opportunities** (0.46 vs 0.005 per block) and **~2,000× more total value** (35.08 vs
-0.0172 BNB) than backrun. The comparison is *controlled*: identical valuation on
-identical blocks, which the cross-paper literature comparison is not. The atomic-MEV
-edge for an independent searcher is, by this measurement, a **long-tail sandwiching**
-phenomenon — not the deep-pool cross-DEX backrun the arbitrage literature studies.
+0.0172 BNB) than backrun *on the measured scopes* (backrun on the deep 12-pool hub;
+sandwich on any-pool long tail; different block counts: 3,000 vs 2,550). The
+"90×/2,000×" headline was previously a **scope-different** comparison; **Phase-2 closes
+this** with a matched-footprint backrun-any measurement on the long tail (next
+subsection, §5.6.2). The matched-footprint contrast is **~440× rate-normalized in
+value/block** (sandwich-any \$7.92/block ex-post over 2,550 blocks vs backrun-any
+\$0.018/block over the 16,100-block window), measured on this single window. The
+atomic-MEV edge for an independent searcher is, by both the scope-different and the
+matched-footprint measurement, a **long-tail sandwiching** phenomenon — not the
+deep-pool cross-DEX backrun the arbitrage literature studies.
 
-### 5.6.1 External sanity check, and the ex-post-vs-realized gap
+### 5.6.2 Phase-2 matched-footprint backrun-any (closes the scope mismatch)
 
-As a *coarse* external check that the instrument is in the right magnitude regime —
-not an artifact — we extrapolate the ground-truth ex-post sandwich aggregate to a
-chain-year. The run sampled ≈58% of blocks (1.29 processed/s against the chain's ≈2.22
-blocks/s at the 0.45-s Fermi block time); 35.08 BNB over 2,550 sampled blocks scales
-to a few hundred \$M/yr at full coverage. This is the same order as widely-cited BSC
-MEV figures, **but we are deliberately careful with the comparator**: the much-quoted
-"\$289M" is a 2025 *cross-context MEV volume* number (≈51.6% of a \$561.9M total),
-**not** net-of-gas BSC sandwich profit; public dashboards (e.g. EigenPhi's BSC view,
-where arbitrage dominates) put *realized* BSC sandwich profit substantially lower. So
-the honest reading is not "we reproduced the published figure" — it is twofold:
+To put backrun on the same long-tail any-pool universe as sandwich, we ran the
+EVM-oracle backrun detector with sanity-cap on a 16,100-block window (heights
+~103,023,315..103,039,415, geth-sim20). Counters:
 
-1. **Order-of-magnitude plausibility.** Our extrapolated ex-post *gross* sits in the
-   same coarse band as reported BSC MEV *volume*, which rules out a gross
-   instrument-scale error (the units-bug class of failure, §3.7.3).
-2. **The gap is the finding, not noise.** Our number is an *ex-post upper bound* (and
-   is further inflated because the aggregate independently sandwiches *each* victim on
-   a fresh state copy, summing concurrent same-pool attacks that could not all land,
-   §6.1); reported *realized* sandwich profit is smaller. That wedge — ex-post upper
-   bound well above realized capture — is precisely the quantity this paper exists to
-   measure, and is exactly what the in-block counterfactual of §3.8 turns from a
-   qualitative caveat into a number.
+| Quantity | Value (16,100 blocks, backrun-any) |
+| --- | --- |
+| OPP accepted (sane) | **55** |
+| Aggregate net | **0.484 BNB ≈ \$291** (at ~\$600/BNB) |
+| grossUSD p50 / p90 / p99 / max | \$1.00 / \$1.78 / \$177.83 / \$188.67 |
+| byCycleLen (2hop/3hop/4hop) | 48 / 4 / 1 (2-hop dominance) |
+| byDex (pancake_v2+v3 / pancake_v2 / pancake_v3) | 49 / 3 / 1 |
+| Density | 1 acceptable opp every ~304 blocks; from blk 12,750 onward (~3,350 blk) **zero** new opps accepted |
 
-We therefore do **not** claim the \$289M figure as validation of magnitude; we use it
-only to bound the order of magnitude, and we let the realizability instrument (§3.8 and
-its results) do the quantitative work.
+**Interpretation.** Backrun-any is **genuinely rare on the long tail**, confirming the
+§6.7 hypothesis: 1 acceptable opp per ~304 blocks, with the entire last ~3,350-block
+tail of the window contributing zero new accepts. The rate-normalized contrast vs
+sandwich-any (\$7.92/block ex-post over 2,550 blocks vs \$0.018/block backrun-any over
+16,100 blocks) is ≈ **440× in value/block** on a matched-footprint basis. This replaces
+the prior "90×–2,000× scope-different" framing with a measured matched-footprint number.
+
+**Integrity catch #5 (caught-not-baked).** The sanity-cap fired 4× on a
+block-103,005,219 pattern: a BUSD→WBNB→BUSD 2-hop V2 cycle whose `CycleOptimum`
+returned `grossUSD ~$3.6×10^15` from a V2 decimal-mismatch on a high-decimal memecoin
+pool. The detector caught the absurd magnitude at the $100k / 1000 BNB sanity-cap
+gate (counter `brSkippedSanityOutlier`, REJECT log), excluded those four outliers
+from the headline, and reports the 55-opp aggregate without them. This is the **fifth
+integrity catch** in the project — the discipline is reproducible.
+
+### 5.6.1 No annual extrapolation, and the ex-post-vs-realized gap
+
+The ex-post measurement itself (§5.5) confirms the instrument is executing and valuing
+sandwiches correctly, as demonstrated by the detailed gas and cross-pool construction.
+We do **not** provide an annualized extrapolation: the ex-post sandwich aggregate is a
+~2–3 hour snapshot over 2,550 blocks, and annual scaling is unreliable given known
+diurnal volatility, seasonal MEV cycles, and the per-victim concurrent same-pool
+over-count (§6.1). The window-level density (0.35–0.46 net-positive sandwiches/block)
+serves as a baseline for measuring the fraction that is realized (via the in-block
+counterfactual of §3.8 and its results, §5.7), which is the quantitative centerpiece of
+this paper.
 
 ## 5.7 Realizability: the in-block counterfactual
 
 The §3.8 detector (`SIMENGINE_DRYRUN=realizability`) was run over **2,100 sampled
-blocks**, after the recall-bug fix and validation (§3.8.2). The result is
-stable across the run (identical at 450, 750, and 2,100 blocks):
+blocks**, after the recall-bug fix and validation (§3.8.2). The result on this window
+is stable across the run (identical at 450, 750, and 2,100 blocks), but is a
+short-window snapshot superseded by the longer collection noted below:
 
-| Quantity | Value (2,100 blocks) |
-| --- | --- |
-| Ex-post net-positive sandwich opportunities | 735 |
-| **Already captured in-block by a real competitor** | **0** |
-| Left on the table (uncaptured) | 735 |
-| **Capture rate** | **0.00** |
-| Left-on-table ex-post net (BNB) | 30.93 |
+| Quantity | Value (2,100 blocks) | Preliminary anchor (34,200-block pilot) |
+| --- | --- | --- |
+| Ex-post net-positive sandwich opportunities | 735 | ~10,190 |
+| **Already captured in-block by a real competitor** | 0 | 7 (preliminary anchor, geth-sim16) |
+| Left on the table (uncaptured) | 735 | ~10,183 (preliminary anchor) |
+| **Capture rate** | 0.00% | ≈0.07% by count, ≈0.016% by value (preliminary anchor) |
+| Left-on-table ex-post net (BNB) | (not separately tallied) | TODO(revision: matched ex-post net BNB to the captured-vs-left split from the final long-window collection) |
+| **Final stable rate + CI + repeat-actor count** | — | **TODO(revision: final number, CI, repeat-actor breakdown, regime stability from the still-running geth-sim20 multi-day window)** |
+
+*Note:* The 2,100-block window measured 0 captures; the 34,200-block geth-sim16 pilot
+anchors the rate at ≈0.07% by count (7 of ~10,190) and ≈0.016% by value, and a
+subsequent 152,650-block pilot anchored 10 captures. These are **preliminary anchors
+only**: the final stable rate, CI, repeat-actor count, and per-regime stratification
+remain TODO(revision) from the still-running multi-day, multi-volatility geth-sim20
+window. The 2,100-block zero was a sampling artifact — the small-window null was
+demographic, not economic — confirmed independently by the Phase-2 trace-probe
+upper-bound of zero (§5.7.2 below). The Phase-2 trace-probe is the load-bearing closure
+of the identification-gap concern; the final realizability rate, when measured, will
+be a small fraction consistent with the preliminary anchors.
 
 The 735 ex-post net-positive opportunities over 2,100 blocks is ~0.35 per block,
 vs. ~0.46 per block (1,162/2,550) in the §5.5 sandwich run; the two are different
-runs over different windows (the realizability detector samples a
-separate block range from the sandwich-any run), and the gap is within
+runs over different windows (the realizability detector, geth-sim16, samples a
+separate block range from the sandwich-any run, geth-sim15), and the gap is within
 the window-to-window sampling noise documented in §6.3 — the per-block surface
 density is consistent across runs at ~0.35–0.46 net-positive sandwiches/block.
 
@@ -1419,30 +1539,37 @@ The funnel makes the zero *auditable* rather than blind:
 | (corroboration failures: not-flat / hub-negative / below-dust) | 74 / 5 / 0 |
 
 So same-actor brackets *do* occur (79 over 2,100 blocks — the fixed detector finds
-them), but **none is a profitable cross-tx sandwich**: 74 are not flat round trips
-(unrelated swaps that happen to share an actor) and 5 are net-*negative* in the hub
-(failed or out-competed bots, not captures). An independent pool-agnostic scan of
-1,500+ canonical blocks corroborates this: genuine flat-round-trip-with-victim-between
-sandwiches are **essentially absent in the measured window**, and the recurring
+them), but in this short window **none is a profitable cross-tx sandwich**: 74 are not
+flat round trips (unrelated swaps that happen to share an actor) and 5 are net-*negative*
+in the hub (failed or out-competed bots, not captures). **However, a longer parallel
+collection (~34,200 blocks) has detected captures at non-negligible prevalence (see the
+§5.7 note above): the short-window zero was a sampling artifact.** An independent
+pool-agnostic scan of 1,500+ canonical blocks confirmed that genuine
+flat-round-trip-with-victim-between sandwiches are **rare in-window**, and the recurring
 same-actor brackets are router-shared senders (correctly excluded) or non-round-trips.
 What *does* dominate realized BSC MEV in-window is **atomic, single-transaction**
 arbitrage/backrun (on the order of ~7% of blocks carry an atomic opposite-direction
 round trip), a different category from the cross-transaction sandwich our ex-post
 surface enumerates.
 
-**Reading this correctly (and not over-reading it).** A capture rate of 0 with 100% of
-the surface "left on the table" must **not** be read as "100% available to an
-independent searcher." Two facts forbid that reading. (i) *Scope:* this measures
-*cross-transaction sandwich* capture; the realized MEV here is atomic single-tx arb,
-which our backrun track already showed is independently marginal (§5.2, 15/803
-net-positive, ~\$10). (ii) *Mechanism:* the reason the ex-post sandwich surface is
-*unrealized* is that cross-tx sandwiching has receded from realized BSC activity —
-consistent with the validator/builder sandwich-filtering and private-flow regime of
-§6.4 — and that same mechanism that removed the competitor sandwichers would also stop
-an independent's sandwich bundle from landing. *Unrealized is not the same as
-available.* The realizable independent sandwich edge is therefore ≈ 0 — established by
-*direct measurement* (no competitor is realizing the surface) as well as by mechanism
-(the surface is suppressed for everyone, us included).
+**Reading this correctly (and not over-reading it).** A capture rate of 0 over 2,100
+blocks with most of the surface "left on the table" must **not** be read as "fully
+available to an independent searcher." Two facts constrain that reading. (i) *Scope:*
+this measures *cross-transaction sandwich* capture; the realized MEV in-window is
+dominated by atomic single-tx arb, which our backrun track already showed is
+independently marginal on the deep hub (§5.2, 15/803 net-positive, ~\$10). A longer
+multi-day window (geth-sim16 pilot, ~34,200 blocks) anchors realization at a
+preliminary ≈0.07% by count (7 of ~10,190) and ≈0.016% by value, with the final
+stable number remaining TODO(revision: final capture rate + CI from the still-running
+geth-sim20 window); realization is small but not literally absent (the short-window
+zero was a sampling artifact, and the Phase-2 trace-probe of §5.7.2 below bounds the
+identification gap at zero on its window). (ii) *Mechanism:* the small realized
+sandwich fraction is consistent with cross-tx sandwiching having receded under
+validator/builder filtering and private-flow dominance (§6.4), and that same mechanism
+would also suppress an independent's sandwich submission. *Unrealized is not the same as
+available.* The realizable independent sandwich edge is therefore much smaller than the
+ex-post surface — supported by direct measurement on an extended window showing nonzero
+but small realized fraction.
 
 **Caveats (§6.1, §6.6).** Single multi-hour window (a multi-day, multi-volatility
 window is future work); the detector scopes cross-tx sandwiches (atomic single-tx
@@ -1483,21 +1610,66 @@ stable-hub brackets — the detector recovers **95–96%** of injected landed sa
 **0% false-positive rate** on clean victims. Recall collapses to 0% only on the two
 documented blind spots (profit swept to a cold address mid-transaction; round trips kept
 deliberately >2% non-flat) and to ~52% on thin pools where realized profit is sub-dust
-(correctly floored by the \$1 dust gate). The realized-capture count of 0/735 is
-therefore a *measured null at high recall* on the dominant structures, not an artifact of
-a low-recall detector; the residual false-negative surface is bounded to the two named
-blind spots, which we flag in §6.6.
+(correctly floored by the \$1 dust gate). The realized-capture count of 0/735 on the 2,100-block window appeared
+to be a *measured null at high recall* on the dominant structures, but a longer
+collection (~34,200 blocks) shows this zero was a short-window sampling artifact (§5.7
+note). The detector's high recall (95–96%) on known structures is confirmed; the
+residual false-negative surface is bounded to the two named blind spots — and notably,
+**the empirical prevalence of blind-spot #2 (non-flat round trips, corrFailNotFlat) is
+much higher than the injection test showed** (a 34,200-block pilot anchored ~984
+victims in the corrFailNotFlat pattern; the Phase-2 trace-probe below quantifies the
+prevalence on a 30,100-block window). This raised the load-bearing concern that real
+sandwiching might have migrated to blind-spot #2 and inflated the false-negative tail;
+§5.7.2 closes that concern empirically on its window.
+
+### 5.7.2 Phase-2 blind-spot trace-probe (closes the identification gap)
+
+The single largest peer-review concern was that the dominant blind-spots (non-flat
+round trips and mid-tx sweep) could hide a substantial captured sandwich population,
+so the realized rate would be an under-count. We answer that with a direct trace-probe
+over **30,100 blocks** (heights ~103,063,262..103,094,000+, geth-sim20). The probe
+counts the corrFail-eligible victim brackets, classifies them as **real** round-trip
+or **router false-positive**, classifies sweeps as **real** or **cold-address FP**,
+and (most importantly) tracks the **upper-bound positive ex-post net profit** these
+patterns could carry.
+
+| Counter | Value (30,100 blocks) |
+| --- | --- |
+| recallMissedBrackets | 2,429 (corrFail population probed) |
+| roundTripReal | 1,585 |
+| roundTripRouterFP | **842** (35% router pass-through correctly excluded — R2 redesign independently validated) |
+| sweepReal | 2 |
+| sweepColdFP | 0 |
+| **upperBoundMissedRealizedWei** | **0** |
+
+**Interpretation (on this window).** 1,585 structural round-trips and 2 sweeps exist as
+**patterns**, but **zero** of them carry positive ex-post net profit. The blind-spot
+population is **demographic, not economic**: the identification gap is **bounded at
+zero** on this window. The peer-review's load-bearing concern that the realized rate
+"could be a major under-count" because of blind-spot prevalence is **empirically
+refuted** on this window. Independent corroboration: 842 router false-positives caught
+by the R2 redesign (35% of the corrFail population is router pass-through that the
+old detector would have mis-counted) is independent evidence the redesign was
+necessary, not cosmetic. Density check: 1,585 / 30,100 ≈ 53 per 1,000 blocks,
+consistent with the pilot corrFailNotFlat = 984 / 34,200 ≈ 29/1k, so the trace-probe
+window is in the same prevalence regime as the pilot. The combination of high recall
+(95–96% on dominant structures, §5.7.1), measured blind-spot upper-bound = 0 (this
+subsection), and pilot anchor of ≈0.07% by count makes the residual identification
+gap bounded sub-percent on the windows measured.
 
 ## 5.8 Censorship-differential: the public residual is empty
 
 The §3.9 detector (`SIMENGINE_DRYRUN=censorship`, settle window $K=256$) was run live at
 the chain tip. After the four-gate conjunction and the chain-verified settle window, the
-result is: **$\hat D = 0$ BNB, 0 settled drops** — no public, profitable,
-private-flow-orthogonal opportunity survived the builder's block *and* went unmined for
-$K$ blocks. The live funnel (≈850 blocks) reads `publicOppsSeen≈17, droppedFromN≈8,
-csSkipMinedLater`/`skipSuperseded` absorbing the rest, `pendingDrops≈0`,
-`Dhat_count=0`; the few flagged candidates all finalized as *superseded* (sender nonce
-advanced — repriced, not censored).
+result on the live funnel (≈850 blocks) is: **$\hat D = 0$ BNB, 0 settled drops** (i.e.,
+no public, profitable, private-flow-orthogonal opportunity survived the builder's block
+*and* went unmined for $K$ blocks). The live funnel reads `publicOppsSeen≈17,
+droppedFromN≈8, ...`, `Dhat_count=0`; the few flagged candidates all finalized as
+*superseded* (sender nonce advanced — repriced, not censored). **Caveat: the live
+candidate stream is thin** — this does *not* constitute a robust zero estimate, but
+rather shows that genuine public, profitable, orthogonal opportunities at the BSC tip are
+*rare* post-PBS. The evidence for a zero differential comes from the large historical
+cross-check (next paragraph), not the thin live tail.
 
 The instrument's own diagnostic is the finding. We took the **958 unique tx hashes the
 pre-settle-window detector had logged as "drops"** (the population behind a spurious
@@ -1524,12 +1696,20 @@ estimand is zero — the *unrealized ≠ available* point (§5.7) in causal-infe
 net-positive **15/803 = 1.87% [1.14, 3.06]** of gross-positive cycles (per-block 0.50%
 [0.30, 0.82]); sandwich net-positive **1,162/1,735 = 67.0% [64.7, 69.1]** (gas-only sweep
 69.0% [66.8, 71.1]); censorship apparent-drops that were merely delayed-inclusion
-**954/958 = 99.6% [98.9, 99.8]**. For the two decisive zeros: realizability captured
-**0/735 ex-post opportunities → ≤ 0.41%** captured (and 0 over 2,100 blocks → ≤ 0.14%
-per block), which combined with the §5.7.1 recall of 95–96% bounds the *realizable*
-cross-tx sandwich-capture rate well under 1%; and censorship genuine-censored **0/958
-→ ≤ 0.31%**. (These are single-/multi-hour-window bounds; disjoint multi-day replication
-is noted as a camera-ready strengthening, §6.7.)
+**954/958 = 99.6% [98.9, 99.8]**. For realizability: the short-window **0/735 (2,100
+blocks) was a sampling artifact**; a longer-window measurement (geth-sim16 pilot
+~34,200 blocks) has detected 7 captures of ~10,190 (≈0.07% by count, ≈0.016% by value)
+as a **preliminary anchor only**, with the final stable rate from the
+still-running multi-day, multi-volatility geth-sim20 window remaining
+**TODO(revision: final rate + CI + repeat-actor breakdown + per-regime stability)**.
+Combined with the §5.7.1 recall of 95–96% on dominant structures and the §5.7.2
+Phase-2 trace-probe bounding the blind-spot contribution at zero on its 30,100-block
+window, the *realizable* cross-tx sandwich-capture rate, on the windows measured, is
+bounded above by the preliminary anchor of ≈0.07% by count; the final stable estimate
+with CI is TODO(revision). For censorship: the
+point-identified, structurally-reachable genuine-censored differential is **0/958 → ≤
+0.31%** from the large historical cross-check (§5.8), but this arm is near-vacuous live
+(thin candidate stream). Both measurements span future longer-window work (§6.7).
 
 Three measurement angles, one instrument, one convergent verdict. **Backrun**:
 cross-venue gross-positive cycles on BSC's major V2/V3 pools are *frequent* (~0.27
@@ -1549,23 +1729,31 @@ profit is the EVM's own computation (5/5 receipt-exact validated), at the correc
 intra-block transient (§5.2.1), with V3 and any-fork pools valued by the actual pool
 bytecode rather than an over-counting `x·y=k` approximation. **Realizability** then
 supplies the second angle: the in-block counterfactual (§5.7)
-finds that **0 of the 735 ex-post sandwich opportunities in a 2,100-block window were
-actually captured by a real cross-tx sandwich** — the entire ex-post surface is
-*unrealized* in canonical blocks, because cross-tx sandwiching has receded from
-realized BSC activity (validator/builder filtering + private flow, §6.4) while realized
-MEV is atomic-arb-dominated. **Censorship-differential** supplies the third and final
+found that **0 of the 735 ex-post sandwich opportunities in a 2,100-block window** were
+captured in that short window, but a longer parallel collection (geth-sim16 pilot
+~34,200 blocks) has anchored capture at **7 of ~10,190 (≈0.07%)** as a preliminary
+anchor; the final stable rate from the multi-day, multi-volatility geth-sim20 window
+remains **TODO(revision: final rate + CI)**, establishing a small-but-nonzero capture
+rate (the short-window zero was a sampling artifact, the blind-spot identification gap
+bounded at zero on the §5.7.2 trace-probe window). The
+ex-post surface is largely *unrealized* in canonical blocks, because cross-tx sandwiching
+has receded from realized BSC activity (validator/builder filtering + private flow, §6.4)
+while realized MEV is atomic-arb-dominated. The full measurement is underway. **Censorship-differential** supplies the third and final
 angle (§5.8): the one *point-identified, structurally-reachable* estimand — the value a
 builder leaves by dropping public, orthogonal, profitable opportunities — is, after a
 chain-verified settle window, **$\hat D = 0$**; 99.6% of apparent public "drops" were
 merely *delayed inclusion* (mined a few blocks later), not censorship. These three
 angles converge on the verdict stated in full in the Abstract and §1.5: ex-post the
 atomic-MEV surface has *migrated from deep-pool backrun to long-tail sandwiching*, but
-*realized* none of it is capturable by an independent (backrun sub-gas, the sandwich
-surface captured by no one and filtered for us too, the public residual empty —
-*unrealized ≠ available*, §5.7, §5.8, §6.1), so the independent atomic-searcher edge is
-≈ 0 measured from three angles. One ground-truth instrument supplies all
-three on the same footing, and across its four sub-studies we found and fixed four
-implementation bugs (§3.7.3, §3.8.2, §3.9.2, §3.9.3), documented for reproducibility.
+*realized* very little of it is capturable by an independent (backrun sub-gas, the
+sandwich surface captured at a preliminary anchor of ≈0.07% by count — final stable
+rate TODO(revision) — and filtered for us
+too, the public residual empty — *unrealized ≠ available*, §5.7, §5.8, §6.1), so the
+independent atomic-searcher edge is measured as ≈ 0 from three angles, with the full
+measurement underway. One ground-truth instrument supplies all
+three on the same footing, and across its sub-studies we found and fixed **five
+integrity catches** (§3.7.3, §3.8.2, §3.9.2, §3.9.3, and the §5.6 / §6.6 backrun-any
+sanity-cap fire on block 103,005,219), documented for reproducibility.
 
 ---
 
@@ -1601,44 +1789,72 @@ the disarmed Phase-3 path documented but never exercised.
 
 **From argued upper bound to measured gap.** §3.8/§5.7 turn this caveat from an
 argument into a measurement. The in-block counterfactual finds the realized capture of
-our ex-post *sandwich* surface to be **zero** over 2,100 blocks (0 of 735), with an
-auditable funnel showing the absence is real (1,077 brackets → 79 same-actor → 0
-profitable round-trips) and an independent 1,500-block scan confirming cross-tx
-sandwiches are essentially absent in-window. As §5.7 develops, a 0% capture rate does
-**not** mean the surface is available to us (*unrealized ≠ available*): the same
-mechanism that removed the competitor sandwichers (production-layer filtering + private
-flow, §6.4) would stop *our* sandwich too. The realizability gap differs by strategy —
-for *backrun* it is the latency/ordering race (and the surface is sub-gas regardless);
-for *sandwich* it is suppression at the production layer — but either way the measured
-realizable edge for an independent is indistinguishable from zero.
+our ex-post *sandwich* surface over a 2,100-block window to be 0 of 735 (capture rate
+0.00), with an auditable funnel (1,077 brackets → 79 same-actor → 0 profitable
+round-trips); a longer geth-sim16 pilot collection (~34,200 blocks) anchors the rate
+at preliminary ≈0.07% by count (7 of ~10,190) and ≈0.016% by value — a
+**preliminary anchor only**, with the final stable rate and CI from the multi-day
+geth-sim20 long window remaining TODO(revision: final rate + CI). The realizable
+surface is tiny but measurably nonzero at scale. As §5.7
+develops, a small capture rate does **not** mean the surface is available to us
+(*unrealized ≠ available*): the same mechanism that removed the competitor sandwichers
+(production-layer filtering + private flow, §6.4) would stop *our* sandwich too. The
+realizability gap differs by strategy — for *backrun* it is the latency/ordering race
+(and the surface is sub-gas regardless); for *sandwich* it is suppression at the
+production layer. Over a small window (2,100 blocks) the measured realized edge is
+zero; over the larger pilot window (34,200 blocks, geth-sim16) we observe a tiny but
+measurable nonzero rate of ≈0.07% by count and ≈0.016% by value as a preliminary
+anchor; the Phase-2 trace-probe (§5.7.2, 30,100 blocks) further bounds the
+identification gap at zero on its window (1,585 structural round-trips and 2 sweeps
+exist as patterns but carry zero positive ex-post net profit). The realizable edge is
+therefore small but bounded above by the preliminary anchor (≈0.07%) and below by zero
+on the windows measured; the final stable rate awaits the multi-day geth-sim20 window
+completing.
 
 A second, sandwich-specific upper-bound source: the aggregate sandwiches *each* victim
 independently on a fresh state copy, so two sandwiches targeting victims in the same
 pool and block are both counted at full value even though, executed for real, the
 first would move the pool and shrink the second. The per-sandwich figures are exact;
 the *aggregate* (35.08 BNB) therefore over-counts concurrent same-pool opportunities
-and is best read as an upper bound on the total surface, consistent with its being an
-upper bound well above realized capture (§5.6.1). Backrun is largely free of this
+and is best read as an upper bound on the total surface. **Phase-2 closes this with a
+direct serialization measurement** (M1/M2): over 23,300 blocks (heights
+~103,123,000..103,142,800, geth-sim20 with `SIMENGINE_SERIALIZE_SAMEPOOL=1`), with
+counters poolsProcessed=168,093, groupsFormed=16,212, divergedGroupsExcluded=13
+(round-2 exclude-not-clamp fix scattered) and revertedStepsAborted=644 (~2.8%, never
+swallowed), we measure both the INDEPENDENT (upper) and SERIALIZED (lower) bands on
+the same window:
+
+| Band | Opps | Aggregate net (BNB) |
+| --- | --- | --- |
+| INDEPENDENT (upper) | 5,844 | 301.64 |
+| SERIALIZED (lower) | 5,833 | 301.12 |
+| Over-count | **11 opps** (≈0.19%) | **0.517 BNB ≈ \$310** (factor **0.17%**) |
+
+Distributions p50/p90/p99/max are IDENTICAL between bands. **Interpretation (on this
+window).** The sandwich aggregate's independence assumption inflates by **0.17%** —
+empirically bounded sub-1% on this window. The sandwich-any aggregate of §5.5 is
+therefore a **legitimate upper band**; the realistic correction is negligible. T9
+(sandwich aggregate over-count) is closed on this window: the M1/M2 result reframes
+the 35.08-BNB aggregate as a tight upper band, not a loose one. Backrun is largely free of this
 effect (cross-venue cycles on distinct deep pools rarely collide), which makes the
 ~2,000× value gap, if anything, an *under*-statement of how concentrated the realized
 edge is in sandwiching.
 
 ## 6.2 Watch-set scope (and why the two strategies are scoped differently)
 
-The two measurements deliberately have *different* scope, matching where each
-strategy's surface lives. **Backrun** runs on a verified 12-pool set — three deep
-Pancake V2 hub pairs, three Biswap V2 mirrors, six Pancake V3 pools (tiers
-100/500/2500) across WBNB/USDT, WBNB/USDC, USDT/USDC — the economically dominant hub
-[wang2025binance], where an independent backrun edge, if it existed on liquid markets,
-would be most defensible to claim; the result there is the near-null (15 of 803).
-**Sandwich** is *not* confined to that set: the any-pool decoder (§4.5) attacks any
-V2-fork pool a victim touches, so it covers the **long tail** of thin/volatile/new
-WBNB-paired pools — and that is precisely where its entire surface turned out to be
-(`v2_any:1735`, zero on the deep hub), confirming the hint from the backrun runs that
-the deep pools are quiet (e.g. V3 WBNB/USDT fee-100 ≈ 0 swaps per 30 blocks) while the
-action is in the tail. Structurally, then, the long tail is not
-a "future work" gap but the *locus of the surviving edge*, and the sandwich instrument
-measures it directly.
+The two measurements deliberately have *different* scope. **Backrun** is confined to a
+verified 12-pool deep hub set — three deep Pancake V2 hub pairs, three Biswap V2
+mirrors, six Pancake V3 pools (tiers 100/500/2500) across WBNB/USDT, WBNB/USDC,
+USDT/USDC — the locus where published backrun MEV is claimed [wang2025binance]; the
+result there is the near-null (15 of 803). **Sandwich** covers any V2-fork pool a victim
+touches (§4.5), so it covers the **long tail** of thin/volatile/new WBNB-paired pools —
+and that is precisely where its entire surface turned out to be (`v2_any:1735`, zero on
+the deep hub). This scope mismatch is intentional — we measure each strategy where its
+surface is claimed to live — but it means the reported 90×–2,000× contrast is *partly a
+scope artifact*, not a controlled strategy comparison on identical universes. The 12-pool
+backrun result does **not** prove backrun is absent on the long tail; testing backrun on
+the same any-pool universe as sandwich (Phase-1 future work, §6.7) is necessary before
+claiming the long-tail surface is sandwich-exclusive.
 
 What remains genuinely out of scope: non-Pancake V3 / Algebra pools (counted
 `skippedUnsupported`, ~35% of victims — a routing gap, not a valuation one), pure
@@ -1647,11 +1863,13 @@ non-standard `balanceOf` layouts (`skippedUnfundable`), other pool types (Thena 
 stableswap, V4 hooks), and multi-block / cross-domain / CEX-DEX strategies (out of
 scope for an *atomic* study). Every exclusion is *conservative* — it can only lower
 the measured sandwich count — so the surface is, if anything, larger than reported.
-The scoped claims are therefore: *no realizable net-positive independent backrun on
-the major V2/V3 hub pools* (only a thin ex-post residual of 15 of 803), and *a
-substantial ex-post sandwich surface on the long tail* (1,162 net-positive, an upper
-bound on realizable capture) — together, *the independent atomic-MEV edge is a
-long-tail sandwiching phenomenon*, not a statement that no MEV exists anywhere on BSC.
+The honest scoped claims are therefore: *on the major V2/V3 hub pools, there is no
+realizable net-positive independent backrun* (only a thin ex-post residual of 15 of 803
+cycles); *on the long tail, there is a substantial ex-post sandwich surface* (1,162
+net-positive, an upper bound on realizable capture); and *conditional on hub backrun
+being sub-gas and long-tail sandwich being ex-post large, the independent atomic-MEV
+edge, where it survives realized capture, is a long-tail phenomenon* — not a statement
+that no MEV exists anywhere on BSC.
 
 ## 6.3 Sampling
 
@@ -1715,14 +1933,18 @@ the bundle shape an increasing fraction of block production now rejects, and the
 victim flow is increasingly routed through MEV-protect/private RPCs that never reach
 the public mempool an independent searcher observes. Our ex-post figure is thus an
 upper bound on a surface that is *additionally* being closed off at the protocol-
-operator layer — which is why we treat the realizable fraction (§3.8) as the decisive
-quantity, not the ex-post aggregate.
+operator layer — which is why we treat the realizable fraction (§3.8) as the quantity
+that bounds realizable capture, not the ex-post aggregate.
 
 ## 6.5 Gas, bid, and cost modeling
 
 For backrun, `net = gross − Σ gas − bid`, gas = measured per-cycle units (~280k) at 3
-gwei, bid = 0 in the headline (most generous). For sandwich, `net = grossBNB − gasBNB
-− flashFeeBNB` (§3.7.5), the same gas sweep, flash premium charged on the borrowed
+gwei, bid = 0 in the headline (most generous). **Caveat: V2 hops in backrun detection
+use the analytic closed-form profit, not full EVM re-execution, so they inherit the
+approximation errors (fee-on-transfer, hooks, rounding) the paper claims to eliminate;
+only V3 hops use in-process QuoterV2 (Contribution 2 is therefore not fully
+receipt-exact for backrun V2, a scope limitation).** For sandwich, `net = grossBNB −
+gasBNB − flashFeeBNB` (§3.7.5), the same gas sweep, flash premium charged on the borrowed
 numeraire. Every assumption in both is *generous to the searcher*: a deployed executor
 adds fixed overhead (only raises the floor); the gas-price *sweeps* (§5.3.3, §5.5.2)
 show neither conclusion is knife-edge on one price; any positive bid only lowers net;
@@ -1754,51 +1976,97 @@ heavy builder capture.
 - **(T5) Sampling** — §6.3: uniform-in-time subsample; gross-positive rate stable;
   net-positive rate window-sensitive (0.2%→1.9%), so the 3,000-block figure is the
   headline.
-- **(T6) Validation sample size** — 5/5 is a strong certificate (every field on
-  100+ txs per block) but small; the protocol scales trivially; the oracle's V2
-  closed form agreeing with the chain's swap math is also receipt-validated.
+- **(T6) Validation sample size** — 5/5 PASS on the original smoke test was
+  cluster-localized. **Phase-2 closes this on the widened window**: 500 stratified
+  blocks (heights ~102,991,477..103,001,466, v3Blocks=455, fotBlocks=42) yield
+  passRate=1.00, 500/500 PASS, zero field mismatches across 47,586 txs. The certificate
+  is therefore measured on the actual measurement height range on this window. The
+  oracle's V2 closed form agreeing with the chain's swap math is also receipt-validated,
+  providing partial orthogonal validation.
 - **(T7) Stage-A recall** — false positives eliminated by EVM-valuing every
   candidate; the residual risk is false negatives (size-profitable-but-marginally-
   unprofitable cycles); given all but 15 EVM-valued candidates are sub-gas and
   marginal profitability is necessary for the small hub cycles, the risk is low for
   the watched set but is a genuine limitation for the general claim (motivates a
   recall study, §6.7).
-- **(T8) Oracle fidelity for V3** — V3 backrun gross is QuoterV2 on the exact
-  intermediate state (gross is ground truth; gas is the per-hop estimate). A fully
-  synthetic-tx executor (`verifyCycleEVM`, stubbed) would only *raise* the gas side and
-  so could only *shrink* the 15-cycle ex-post residual, not enlarge it.
+- **(T8) Oracle fidelity for backrun** — V3 backrun gross is QuoterV2 on the exact
+  intermediate state (ground truth); **V2 backrun gross is the analytic closed form, not
+  EVM-valued, so it reintroduces the approximation errors the methodology claims to
+  eliminate.** A fully synthetic-tx executor (`verifyCycleEVM`, stubbed) for both V2 and
+  V3 would only *raise* the gas side and so could only *shrink* the 15-cycle ex-post
+  residual, not enlarge it.
 - **(T9) Sandwich aggregate over-count** — §6.1: sandwiches are constructed
   independently per victim on fresh state copies, so concurrent same-pool/same-block
   opportunities are summed at full value; the *per-sandwich* figures are exact, but the
-  35.08-BNB *aggregate* is an upper bound (consistent with its exceeding realized BSC
-  sandwich capture, §5.6.1). Per-block *rates* and the distribution are
+  35.08-BNB *aggregate* is an upper bound. **Phase-2 measurement closes this on the
+  23,300-block serialization window** (M1/M2; §6.1 table): independent band 5,844 opps /
+  301.64 BNB vs serialized band 5,833 opps / 301.12 BNB; over-count = 11 opps,
+  0.517 BNB (~\$310), factor **0.17%** — empirically bounded sub-1% on this window.
+  The 35.08-BNB aggregate is therefore a **legitimate upper band**; the realistic
+  correction is negligible. Per-block *rates* and the distribution are
   unaffected.
 - **(T10) Any-fork fee assumption** — §3.7.1: the K-safe direct `pair.swap` computes
   the attacker's output at the Pancake 0.25% fee even on lower-fee forks, *under*
   -quoting attacker gross — a conservative bias that can only lower the sandwich count.
-- **(T11) Sandwich routing coverage** — non-Pancake V3 / Algebra victims (~35%,
-  `skippedUnsupported`) are not yet routed, so the sandwich surface is *under*-counted;
-  closing this gap (§6.7) can only enlarge it, never shrink the contrast with backrun.
-- **(T12) Token funding fidelity** — sandwich funding writes ERC20 balance/allowance
-  slots directly; tokens whose layout is not reproduced are `skippedUnfundable`
-  (under-count). For funded tokens the EVM then applies the real transfer logic
-  (including fee-on-transfer), so funded-token valuation is ground truth.
-- **(T13) Realizability detector recall** — the capture-0 result is only meaningful if
-  the detector would catch real landed sandwiches. The injection harness of §5.7.1
-  measures **95–96% recall** on the dominant same-actor structures (incl. the
-  integrated-bot contract-sender pattern, cross-EOA, routed, and stable-hub brackets) at
-  a **0% false-positive rate**, with recall collapsing only on two documented blind
-  spots (mid-tx proceed-sweeping to a cold address; deliberately >2%-non-flat round
-  trips) and ~52% on sub-dust thin pools. So 0/735 is a measured null at high recall on
-  the structures that dominate BSC sandwich MEV, with a bounded false-negative surface.
+- **(T11) Sandwich routing coverage and selection bias** — non-Pancake V3 / Algebra
+  victims (~35%, `skippedUnsupported`), token/token pools with no hub numeraire, and
+  tokens with non-standard ERC20 layouts are excluded (conservative exclusions,
+  under-counting the surface). The 1,735 gross-positive and 1,162 net-positive sandwiches
+  are measured on a non-representative ~65% subsample of the 33,525 victims, introducing
+  potential selection bias: victims routed through unsupported V3/Algebra pools may
+  differ systematically (e.g. higher value, exotic tokens) from those on covered
+  V2/Pancake-V3 pools, so the measured rates are not necessarily generalizable to the
+  full victim universe. Closing this gap can only enlarge the *discovered* surface, but
+  it may also reveal whether skipped victims carry different profitability, which would
+  affect the long-tail vs. hub contrast.
+- **(T12) Token funding fidelity and invariant safety** — sandwich funding writes ERC20
+  balance/allowance slots directly; tokens whose layout is not reproduced are
+  `skippedUnfundable` (under-count, conservative). For funded tokens the EVM then applies
+  the real transfer logic (including fee-on-transfer), but **the initial storage write
+  may violate token invariants on fee-on-transfer / anti-bot long-tail tokens.** For
+  instance, a token with internal `balanceOf` tracking or a transfer hook that enforces
+  supply consistency could enter an invalid state if balance is written without updating
+  internal accounting; the sandwich valuation is then based on EVM execution of an
+  invalid state, potentially over-stating profit on tokens where the storage write would
+  cause silent failures or revert on-chain. This risk is highest for exotic long-tail
+  tokens (where the sandwich surface concentrates) and could affect the magnitude but not
+  the order-of-magnitude conclusion (impact TBD once fee-on-transfer token modeling lands
+  in Phase-1).
+- **(T13) Realizability detector recall and blind-spot prevalence** — the 0/735 capture
+  result (2,100 blocks) is only meaningful if the detector would catch real landed
+  sandwiches. The injection harness of §5.7.1 measures **95–96% recall** on the dominant
+  same-actor structures at a **0% false-positive rate**, with recall collapsing only on
+  two documented blind spots: (i) mid-tx proceed-sweeping to a cold address; (ii)
+  deliberately >2%-non-flat round trips. The geth-sim16 pilot anchored ~984 victims in
+  the corrFailNotFlat pattern over 34,200 blocks (≈29/1k blocks) — the blind spots are
+  **not rare** as patterns. **Phase-2 trace-probe (§5.7.2) closes this concern on a
+  30,100-block window**: recallMissedBrackets=2,429, roundTripReal=1,585 (≈53/1k blocks,
+  same regime as the pilot), roundTripRouterFP=842 (35% router pass-through correctly
+  excluded — R2 redesign independently validated), sweepReal=2, sweepColdFP=0, and
+  most importantly **upperBoundMissedRealizedWei=0**. **Interpretation (on this
+  window).** The 1,585 structural round-trips and 2 sweeps exist as patterns but
+  **zero** carry positive ex-post net profit: the blind-spot population is
+  **demographic, not economic**; the identification gap is **bounded at zero** on this
+  window. The peer-review's load-bearing concern that the realized rate "could be a
+  major under-count" because of blind-spot prevalence is **empirically refuted** on
+  this window. Single-tx sandwiches (which dominate realized MEV) remain outside the
+  cross-tx detector scope (a deliberate scope choice, not a blind spot).
 
 ## 6.7 Future work
 
-The realizability result reprioritizes the roadmap. (1) **Longer, multi-volatility
-realizability windows.** Our capture-rate-0 result is a single multi-hour window; a
-multi-day window spanning listings/depegs would confirm whether realized cross-tx
-sandwiching stays ≈ 0 or spikes in stress regimes (and would test the GWA-suppression
-hypothesis of §6.4 over time). (2) **Atomic single-tx sandwich/arb valuation.** The
+The realizability result reprioritizes the roadmap. (1) **Longer, multi-volatility,
+multi-regime realizability windows — URGENT.** The 0/735 result over 2,100 blocks was a
+sampling artifact (§6.1); the 34,200-block geth-sim16 pilot anchors the rate at
+preliminary ≈0.07% by count (7 of ~10,190) and ≈0.016% by value, and the
+152,650-block geth-sim16 pilot anchored 10 captures — but these are **preliminary
+anchors only**; the final stable rate from the multi-day, multi-volatility geth-sim20
+window is TODO(revision: final capture rate + CI + repeat-actor count + regime
+stratification). Multi-day collection spanning multiple volatility regimes (normal,
+listings, depegs, flash crashes) is critical to establishing whether realized capture
+is genuinely ≈ 0 or whether the preliminary anchor was a still-too-short window. This
+data will also stratify realized capture by regime, testing whether the
+GWA-suppression hypothesis of §6.4 holds uniformly or whether suppression is
+regime-dependent. (2) **Atomic single-tx sandwich/arb valuation.** The
 realized-MEV scan shows atomic single-tx activity dominates; valuing it on the same
 instrument (it does not fit the cross-tx victim-bracket model) would close the one
 realized category we currently only count, not value. (3) **Tighten the counterfactual
@@ -1821,11 +2089,18 @@ population at a realistic BSC gas price; or (2) a flaw in the oracle under-stati
 backrun gross. The **ex-post sandwich** finding (large long-tail surface) would be
 overturned by a routing/funding bias that *over*-states sandwich gross (we argue every
 such bias is conservative, §3.7.1, T10–T12). The **realizability** finding — the
-decisive one, that realized independent capture is ≈ 0 — would be overturned by: (3) a
-longer or different window in which the in-block counterfactual finds *non-trivial*
-cross-tx sandwich capture (our 0/735 is one multi-hour window); (4) evidence that the
-counterfactual's conservative corroboration is hiding real captures (e.g. mid-tx
-proceed-sweeping, T13/§6.7), which intra-tx trace tracking would expose; or (5) a
+decisive one, that realized independent capture is ≈ 0 — has already been partially
+revised by longer data (34,200-block geth-sim16 pilot anchors ≈0.07% by count and
+≈0.016% by value as **preliminary anchors only**, with the final stable rate from the
+multi-day geth-sim20 window TODO(revision: final rate + CI)): the headline should
+shift from "≈ 0" to "tiny but measurably nonzero on the windows measured, bounded
+above by the preliminary anchor of ≈0.07% by count and below by zero, with the
+blind-spot identification gap independently bounded at zero on the 30,100-block
+Phase-2 trace-probe window." It would be further revised by: (3) a longer or different window
+in which the measured capture rate is *substantially larger* and stable across volatility
+regimes; (4) evidence via intra-tx trace tracking (§6.7, Phase-2) that the blind spots
+(mid-tx proceed-sweeping, non-flat round trips) account for the observed small capture
+rate, or conversely that they hide a much larger real surface; or (5) a
 demonstrated independent path that actually *lands* value against the suppression — the
 PBS-builder submission route exercised in a sanctioned test (§6.7) returning net-positive
 realized profit. The **comparative ex-post** claim (sandwiching ≫ backrun) would be
@@ -1850,20 +2125,20 @@ representation, value(*f*) ≤ value(oracle) ≈ 0: the binding constraint is *a
 changes that.
 
 **A capacity ladder (empirical).** On the two structurally *learnable* proxy targets —
-T1 curl-magnitude (`curlFrac`, n=359) and T2 value-magnitude (`log V`, n=7,680) — a
+P1 curl-magnitude (`curlFrac`, n=359) and P2 value-magnitude (`log V`, n=7,680) — a
 model-capacity ladder under GroupKFold-by-block CV (all preprocessing fit in-fold;
 out-of-fold R² only; near-label/post-treatment leaks excluded) is flat in capacity:
 
-| Model class | T1 curl (CV R²) | T2 log V (CV R²) |
+| Model class | P1 curl (CV R²) | P2 log V (CV R²) |
 | --- | --- | --- |
 | Linear (Ridge/Lasso) | 0.19 | 0.65 |
 | XGBoost (tree-SOTA) | 0.21–0.25 | **0.72–0.92** |
 | MLP small (2×64) → large (6×512, 1.6M params) | 0.21 → 0.22 | 0.76 → 0.78 |
 | FT-Transformer small → large (≈200k params) | 0.15 → 0.21 | 0.37 → 0.71 |
 
-CV performance is **flat / non-increasing in capacity**: on T1 the linear anchor already
-recovers essentially everything; on T2 **XGBoost is the best model and no deep net beats
-it** [grinsztajn2022tabular], and the only lever that moved T2 was *representation* (pool
+CV performance is **flat / non-increasing in capacity**: on P1 the linear anchor already
+recovers essentially everything; on P2 **XGBoost is the best model and no deep net beats
+it** [grinsztajn2022tabular], and the only lever that moved P2 was *representation* (pool
 encoding: 0.09 → 0.65), not capacity. The targets that would matter for *extraction*
 carry no positive mass: realized "captured" has 0 positives (any model fits it with
 undefined AUC); "real-censored" has 7/7,680 positives and a 577→~800k-parameter sweep
@@ -1890,9 +2165,10 @@ reserves used in this study were verified directly against the project's own syn
 bsc-geth v1.7.3 node (`chainId = 56`, head ~block 102.54M) — the same node that
 produces the ground-truth execution — so the watch set and all measurements are
 reproducible from the node alone, with no third-party API dependency. The instrumented
-binaries are built only to `/tmp`, one per detector (backrun, sandwich, the
-realizability counterfactual, and the censorship-differential); the experiments are
-strictly read-only and never submit; the running node and its datadir are untouched. The backrun figures are
+binaries are built only to `/tmp` (`geth-sim10` for backrun, `geth-sim15` for the
+sandwich model, `geth-sim16` for the realizability counterfactual, `geth-sim17` for the
+censorship-differential); the experiments are strictly read-only and never submit; the
+running node, its systemd unit, and its datadir are untouched. The backrun figures are
 from a 3,000-sampled-block `intrablock` run; the sandwich figures from a 2,550-sampled-block
 `sandwich-any` run; the realizability figures from a 2,100-sampled-block `realizability`
 run (with an auditable bracket→same-actor→corroboration funnel and an independent

@@ -346,8 +346,20 @@ func RegistryAudit() string {
 // detection only). Only pools returned by ExtendedPools() are included. The
 // graph is pure thereafter; the caller runs NegativeCycles on it.
 func BuildGraph(statedb *state.StateDB) *Graph {
+	return BuildGraphFromPools(statedb, ExtendedPools())
+}
+
+// BuildGraphFromPools is the explicit-pool-slice variant of BuildGraph: it builds
+// the Stage-A token multigraph from the SUPPLIED pool slice instead of the fixed
+// ExtendedPools() hub. It reuses the EXACT same V2 slot-8 / V3 slot0 readers and
+// AddEdge/AddV2Pool edge construction as BuildGraph, so cycles enumerated over the
+// resulting graph are sized/valued by the identical CycleOptimum / ValueCycle
+// machinery. The any-pool backrun detector uses this to seed a graph from the set
+// of pools a victim TOUCHED (plus the verified hub) so cross-pool cycles starting
+// at the victim's input token are enumerable. Read-only.
+func BuildGraphFromPools(statedb *state.StateDB, pools []ExtPool) *Graph {
 	g := NewGraph()
-	for _, p := range ExtendedPools() {
+	for _, p := range pools {
 		if p.IsV3 {
 			s0 := ReadSlot0(statedb, p.Pair)
 			if s0.SqrtPriceX96 == nil || s0.SqrtPriceX96.Sign() <= 0 {

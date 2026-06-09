@@ -111,13 +111,10 @@ type dryRunner struct {
 	bc  *core.BlockChain
 	cfg DryRunConfig
 
-	// NOTE (public research artifact): the upstream private fork wires an
-	// arm-gated backrun *submission* orchestrator here (a `sub *SubmitConfig`
-	// field backed by submit.go + the builder/wallet packages). That submission
-	// path is intentionally OMITTED from this read-only measurement artifact —
-	// this code only ever simulates and LOGS would-be opportunities; it never
-	// builds, signs, or submits a transaction. See README "Read-only / never
-	// submits" disclaimer.
+	// sub is the Phase 3 arm-gated backrun orchestrator. It is DISARMED by
+	// default (builds + logs would-be bundles, never signs/sends) unless every
+	// independent factor is satisfied; see submit.go. Used by LIVE mode only.
+	sub *SubmitConfig
 
 	// tallies (atomic, read-only reporting).
 	blocks   atomic.Uint64
@@ -195,10 +192,22 @@ type dryRunner struct {
 	// dryrun_realizability.go. Kept fully separate from the sa* funnel so the two
 	// are independently auditable; the ex-post numbers (rzExPostNetPos) reproduce
 	// sandwich-any's netPositive on the same blocks by construction.
-	rzProcessed           atomic.Uint64           // blocks processed in this mode
-	rzExPostNetPos        atomic.Uint64           // ex-post net-positive opps surfaced (== sandwich-any netPositive)
-	rzCaptured            atomic.Uint64           // opps matched to a landed competitor
-	rzLeftOnTable         atomic.Uint64           // net-positive opps with NO landed match
+	rzProcessed    atomic.Uint64 // blocks processed in this mode
+	rzExPostNetPos atomic.Uint64 // ex-post net-positive opps surfaced (== sandwich-any netPositive)
+	rzCaptured     atomic.Uint64 // opps matched to a landed competitor
+	rzLeftOnTable  atomic.Uint64 // net-positive opps with NO landed match
+	// rzSkippedNilResult counts victims dropped because strategy.OptimalFrontrun
+	// returned a nil gross. NOTE (M5): this guard is effectively UNREACHABLE —
+	// OptimalFrontrun never returns a nil bestGross — so this counter is ~always 0
+	// and is kept only for funnel symmetry / defensive documentation. The REAL
+	// silent per-victim drop was the recover() wrapper around the per-victim
+	// evaluation, now counted by rzRecoveredPanics below.
+	rzSkippedNilResult atomic.Uint64
+	// rzRecoveredPanics counts per-victim ex-post evaluations that PANICKED and were
+	// recovered (silently dropped from the funnel in round-1). Incremented INSIDE the
+	// recover() block so panic-drops are auditable and the ex-post funnel can never
+	// silently lose a victim again (M5 fix).
+	rzRecoveredPanics atomic.Uint64
 	// Landed-detection FUNNEL counters (so we can never report a blind zero again):
 	// bracketCandidates -> sameActorPass -> corroboratePass. Each is incremented in
 	// detectLandedSandwiches as a candidate progresses through the §5.2/§5.3 gates.
@@ -208,9 +217,9 @@ type dryRunner struct {
 	// Corroboration-failure breakdown (diagnostic: prove WHY same-actor brackets are
 	// rejected so a near-zero captureRate is auditable, not a blind zero). A bracket
 	// that passed §5.2 but failed §5.3 increments exactly one of these.
-	rzCorrFailNotFlat   atomic.Uint64 // failed the volatile-token flat round-trip check
-	rzCorrFailHubNeg    atomic.Uint64 // per-pool bracket hub effect was <= 0 (round trip lost hub)
-	rzCorrFailBelowDust atomic.Uint64 // net hub (after gas/bribe) was <= the dust floor
+	rzCorrFailNotFlat     atomic.Uint64           // failed the volatile-token flat round-trip check
+	rzCorrFailHubNeg      atomic.Uint64           // per-pool bracket hub effect was <= 0 (round trip lost hub)
+	rzCorrFailBelowDust   atomic.Uint64           // net hub (after gas/bribe) was <= the dust floor
 	rzCapturedNetWei      atomic.Pointer[big.Int] // sum of OUR netBNB over captured opps (our sizing of what was taken)
 	rzCapturedRealizedWei atomic.Pointer[big.Int] // sum of COMPETITOR realizedNetBNB over captured opps
 	rzLeftNetWei          atomic.Pointer[big.Int] // sum of OUR netBNB over left-on-table opps (realizable upper bound)
@@ -261,25 +270,25 @@ type dryRunner struct {
 	csProcessed      atomic.Uint64 // blocks processed in this mode
 	csPublicOppsSeen atomic.Uint64 // drop candidates that decoded as a public opportunity
 	// Funnel exclusions (each EXCLUDE increments exactly one).
-	csSkipNonceMoved     atomic.Uint64 // account nonce already moved past the candidate (superseded/mined)
-	csSkipNonceGap       atomic.Uint64 // candidate nonce > parent nonce (not executable at seal)
-	csSkipInvalidAtSeal  atomic.Uint64 // failed static / stateful validation at the sealing parent
-	csSkipReplaced       atomic.Uint64 // (sender,nonce) filled in the sealed block under a DIFFERENT hash
-	csSkipNoNumeraire    atomic.Uint64 // neither pool token is WBNB/stable (cannot value)
-	csSkipUnfundable     atomic.Uint64 // a pool token's slot could not be probed
-	csSkipBelowThreshold atomic.Uint64 // below the min-victim dust floor
-	csSkipNetNonPositive atomic.Uint64 // not net-of-gas profitable
-	csSkipNonOrthogonal  atomic.Uint64 // pool in the candidate's path touched by a sealed tx (SUTVA / stale-reserve)
+	csSkipNonceMoved      atomic.Uint64 // account nonce already moved past the candidate (superseded/mined)
+	csSkipNonceGap        atomic.Uint64 // candidate nonce > parent nonce (not executable at seal)
+	csSkipInvalidAtSeal   atomic.Uint64 // failed static / stateful validation at the sealing parent
+	csSkipReplaced        atomic.Uint64 // (sender,nonce) filled in the sealed block under a DIFFERENT hash
+	csSkipNoNumeraire     atomic.Uint64 // neither pool token is WBNB/stable (cannot value)
+	csSkipUnfundable      atomic.Uint64 // a pool token's slot could not be probed
+	csSkipBelowThreshold  atomic.Uint64 // below the min-victim dust floor
+	csSkipNetNonPositive  atomic.Uint64 // not net-of-gas profitable
+	csSkipNonOrthogonal   atomic.Uint64 // pool in the candidate's path touched by a sealed tx (SUTVA / stale-reserve)
 	csSkipAlreadyCaptured atomic.Uint64 // a landed competitor already captured it (value taken, not left)
-	csSkipShortLead      atomic.Uint64 // (localSeal - firstSeen) below the builder lead-time floor (arrived too late)
-	csSkipClosedByBlock  atomic.Uint64 // profitable on the parent but reverts/nets <=0 on the POST-SEALED-BLOCK state (the block already closed the opp)
-	csSkipNotRoundTrip   atomic.Uint64 // single-leg one-way swap (< 2 directional swap legs): its positive hub delta is GROSS SALE PROCEEDS, not self-contained arb profit (not a dropped searcher opp)
+	csSkipShortLead       atomic.Uint64 // (localSeal - firstSeen) below the builder lead-time floor (arrived too late)
+	csSkipClosedByBlock   atomic.Uint64 // profitable on the parent but reverts/nets <=0 on the POST-SEALED-BLOCK state (the block already closed the opp)
+	csSkipNotRoundTrip    atomic.Uint64 // single-leg one-way swap (< 2 directional swap legs): its positive hub delta is GROSS SALE PROCEEDS, not self-contained arb profit (not a dropped searcher opp)
 	// Progress through the gate (informational; not exclusions).
-	csOrthogonal         atomic.Uint64 // candidates that passed orthogonality
-	csProfitable         atomic.Uint64 // candidates that passed net-of-gas
-	csDropped            atomic.Uint64 // confirmed dropped (pre-not-captured count)
-	csIncludedComparable atomic.Uint64 // public opps the builder INCLUDED (control group; D-contribution 0)
-	csDhatCount          atomic.Uint64 // opps contributing to D-hat
+	csOrthogonal         atomic.Uint64           // candidates that passed orthogonality
+	csProfitable         atomic.Uint64           // candidates that passed net-of-gas
+	csDropped            atomic.Uint64           // confirmed dropped (pre-not-captured count)
+	csIncludedComparable atomic.Uint64           // public opps the builder INCLUDED (control group; D-contribution 0)
+	csDhatCount          atomic.Uint64           // opps contributing to D-hat
 	csDhatWei            atomic.Pointer[big.Int] // sum of V_i (BNB wei) = D-hat (the LOWER bound)
 	csDist               *strategy.GrossDist     // BNB distribution of the dropped-D population
 	// csCreditedDrops is the LIFETIME set of candidate tx hashes already credited to
@@ -288,8 +297,8 @@ type dryRunner struct {
 	// creditedPoolSide map only dedups WITHIN a single block). De-duping by hash across
 	// the whole run counts each unique dropped opportunity AT MOST ONCE, removing that
 	// Nx multiplier. Strictly under-states D (one count, not N) — the safe direction.
-	csCreditedDropsMu sync.Mutex
-	csCreditedDrops   map[common.Hash]bool
+	csCreditedDropsMu     sync.Mutex
+	csCreditedDrops       map[common.Hash]bool
 	csSkipAlreadyCredited atomic.Uint64 // candidate already credited on an earlier head (cross-block repeat)
 	// SETTLE WINDOW (deferred-drop finalization). A candidate that passes every gate
 	// at block N is NOT credited to D immediately: it is enqueued (csPending) with a
@@ -321,18 +330,18 @@ type dryRunner struct {
 	// from the other funnels so the experiment is independently auditable.
 	curlCfg curlConfig
 
-	curlProcessed     atomic.Uint64 // blocks processed in this mode
-	curlSinglePoolKge atomic.Uint64 // single-pool clusters with k>=MINK seen (pre-qualification)
-	curlClusters      atomic.Uint64 // qualifying clusters fully decomposed (fed rho)
-	curlCommuting     atomic.Uint64 // clusters whose Omega==0 (value order-independent; rho undefined)
-	curlOversize      atomic.Uint64 // clusters above maxK (recorded, not decomposed)
-	curlSkipNoMeta    atomic.Uint64 // pool metadata unresolvable
+	curlProcessed       atomic.Uint64 // blocks processed in this mode
+	curlSinglePoolKge   atomic.Uint64 // single-pool clusters with k>=MINK seen (pre-qualification)
+	curlClusters        atomic.Uint64 // qualifying clusters fully decomposed (fed rho)
+	curlCommuting       atomic.Uint64 // clusters whose Omega==0 (value order-independent; rho undefined)
+	curlOversize        atomic.Uint64 // clusters above maxK (recorded, not decomposed)
+	curlSkipNoMeta      atomic.Uint64 // pool metadata unresolvable
 	curlSkipNoNumeraire atomic.Uint64 // neither pool side is WBNB/stable
-	curlSkipNonWBNB   atomic.Uint64 // pool numeraire is a stable (C1 admits WBNB/BNB only)
-	curlSkipNoActor   atomic.Uint64 // no recoverable EOA actor in the cluster
-	curlSkipPrefixFail atomic.Uint64 // the fixed context prefix failed to execute
-	curlExhaustiveDone atomic.Uint64 // clusters that also ran the exhaustive k! GATE-1 check
-	curlScalarDone    atomic.Uint64 // clusters that also ran the GATE-3 scalar-ordering curl
+	curlSkipNonWBNB     atomic.Uint64 // pool numeraire is a stable (C1 admits WBNB/BNB only)
+	curlSkipNoActor     atomic.Uint64 // no recoverable EOA actor in the cluster
+	curlSkipPrefixFail  atomic.Uint64 // the fixed context prefix failed to execute
+	curlExhaustiveDone  atomic.Uint64 // clusters that also ran the exhaustive k! GATE-1 check
+	curlScalarDone      atomic.Uint64 // clusters that also ran the GATE-3 scalar-ordering curl
 
 	// Exact-quantile accumulators (every cluster is rare, so we keep all samples and
 	// report EXACT median/p10/p90; not log-bucketed).
@@ -340,6 +349,94 @@ type dryRunner struct {
 	curlCurlFracHist   *fracHist // curlFrac = ||curl||^2/||Omega||^2 distribution
 	curlHarmFracHist   *fracHist // GATE-1 orthogonality-residual (harmonic-proxy) distribution
 	curlScalarCurlHist *fracHist // GATE-3 scalar-ordering curlFrac distribution
+
+	// -----------------------------------------------------------------------
+	// BACKRUN-ANY (long-tail any-pool 1-leg backrun) detector
+	// (SIMENGINE_DRYRUN=backrun-any). The single-tx counterpart to sandwich-any:
+	// for EVERY decoded V2/V3 victim swap on ANY pool, value the optimal trailing
+	// backrun (one swap that sells the price the victim just moved back to its
+	// input token) on the EXACT post-victim state, with a gas-only net gate (no
+	// flash, no bid-on-input). Disjoint from the sa* funnel so the two populations
+	// (sandwich vs backrun) are matched and independently auditable. See
+	// dryrun_backrun_any.go.
+	brVictimsSeen         atomic.Uint64 // every V2/V3 Swap-log victim observed (matches sa)
+	brSkippedUnfundable   atomic.Uint64 // a pool token's slot is unresolvable
+	brSkippedUnsupported  atomic.Uint64 // non-Pancake V3 fork / irrelevant V3 / unreadable meta
+	brSkippedNoNumeraire  atomic.Uint64 // neither pool token is WBNB/stable (can't value)
+	brSkippedNonNumeraire atomic.Uint64 // victim INPUT token (cycle start) is non-numeraire -> can't denominate in BNB
+	brBelowThreshold      atomic.Uint64 // below the min-victim dust floor
+	brGrossPositive       atomic.Uint64 // victims with ground-truth gross > 0 (zero-input backrun)
+	brNetPositive         atomic.Uint64 // victims net-positive after gas (+ bid)
+	brTotalNetWei         atomic.Pointer[big.Int]
+	brDist                *strategy.GrossDist
+	brProbeLogged         atomic.Uint64 // per-victim probe lines emitted (capped at 15)
+	// brSkippedSanityOutlier counts backrun opportunities REJECTED by the sanity-cap
+	// outlier filter (catch-it-don't-bake-it; mirrors the prior sandwich units-bug
+	// catch). A single decimal-mismatch or degenerate-pool math can produce a gross
+	// of billions+ USD on one tx and pollute the aggregate by 12+ orders of magnitude;
+	// the detector logs the forensic detail and refuses to count it. Knobs:
+	// SIMENGINE_BACKRUN_SANITY_USD_CAP (default 100000 USD) and
+	// SIMENGINE_BACKRUN_SANITY_NET_BNB_CAP (default 1000 BNB; threshold = cap*1e18).
+	brSkippedSanityOutlier atomic.Uint64
+
+	// -----------------------------------------------------------------------
+	// SERIALIZED CONTENDING SAME-POOL EXECUTION (concurrency-overcount) detector
+	// (SIMENGINE_DRYRUN=sandwich-serialize). Per block, group the ex-post opps by
+	// pool; for each pool measure the INDEPENDENT upper bound (every opp on a fresh
+	// parent Copy, as sandwich-any does today) vs the SERIALIZED lower bound (opps
+	// applied in order on the cumulative state). The gap = the over-count that the
+	// independent (per-victim-isolated) evaluation introduces when multiple
+	// contending opps land on the SAME pool. Strictly READ-ONLY (state.Copy only).
+	// See dryrun_sandwich_serialize.go.
+	ssPoolsProcessed   atomic.Uint64 // unique pools that carried >=1 opp
+	ssGroupsFormed     atomic.Uint64 // pools that carried >1 opp (the contention groups)
+	ssIndependentUpper atomic.Uint64 // opp count realized on the independent path
+	ssSerializedLower  atomic.Uint64 // opp count realized on the serialized path
+	ssUpperTotalNetWei atomic.Pointer[big.Int]
+	ssLowerTotalNetWei atomic.Pointer[big.Int]
+	ssUpperDist        *strategy.GrossDist // upper-band net-BNB distribution
+	ssLowerDist        *strategy.GrossDist // lower-band net-BNB distribution
+	// ssDivergedGroups counts pool groups where the serialized (lower) band exceeded
+	// the independent (upper) band — a state-divergence / methodology break. Such a
+	// group is EXCLUDED from both aggregates (never clamped), so the over-count is
+	// not artificially inflated by a one-sided floor. ssRevertedSteps counts cum
+	// advances that failed (a real tx reverted on the mutated cum substrate); the
+	// affected pool group is aborted (both bands dropped) and counted here.
+	ssDivergedGroups atomic.Uint64
+	ssRevertedSteps  atomic.Uint64
+
+	// -----------------------------------------------------------------------
+	// BLIND-SPOT TRACE-PROBE (SIMENGINE_DRYRUN=blindspot). ROUND-1 REDESIGN: the
+	// probe operates on the RECALL-MISSED population — opposite-direction cross-tx
+	// bracket candidates that reached the realizability §5.2 gate but FAILED
+	// rzCorroborate (the corrFail buckets) — NOT the ex-post net-positive surface.
+	// For each failed-corroboration bracket it runs corrected evasion-pattern
+	// detectors WITH the §5.2 router/coinbase/same-actor exclusions: an atomic
+	// round-trip measured as a PERCENTAGE of gross movement (not a fixed wei
+	// window), and a proceeds-sweep whose recipient is confirmed COLD by state
+	// nonce. The output is an upper bound on the realized capture the same-actor
+	// flat-balance gate UNDER-counts, segregated by pattern type, plus the
+	// false-positive counts on router pass-throughs / warm addresses. Strictly
+	// READ-ONLY. See dryrun_blindspot.go.
+	bsProcessed                      atomic.Uint64           // blocks processed in this mode
+	bsRecallMissedBrackets           atomic.Uint64           // bracket candidates that reached §5.2 but FAILED rzCorroborate
+	bsRecallMissedRoundTrip_Real     atomic.Uint64           // recall-missed brackets that ARE real (non-flat) round-trips
+	bsRecallMissedRoundTrip_RouterFP atomic.Uint64           // round-trip pattern matched but ruled out as a router pass-through
+	bsRecallMissedSweep_Real         atomic.Uint64           // recall-missed brackets with proceeds swept to a confirmed-COLD address
+	bsRecallMissedSweep_ColdFP       atomic.Uint64           // sweep pattern matched but recipient was warm/router (false positive)
+	bsRecallMissedRealizedWei        atomic.Pointer[big.Int] // upper-bound realized BNB summed over TRUE-positive recall-missed brackets
+	bsPatternMu                      sync.Mutex
+	bsPatternMap                     map[string]uint64 // pattern -> count breakdown
+	bsCfg                            blindspotConfig
+
+	// -----------------------------------------------------------------------
+	// WIDEN RECEIPT VALIDATION (SIMENGINE_DRYRUN=receipt-valid). Stratified
+	// re-execution validation over a height range, classifying each sampled block
+	// (V3-heavy / fee-on-transfer / fork-boundary / generic) and diffing the
+	// simulated receipts against canonical ones. Kept on its own pointer so the
+	// struct only carries it when the mode is selected (like rt). See
+	// dryrun_receipt_valid.go.
+	rtv *rtvCounters
 }
 
 // StartDryRun launches the in-process dry-run backrun harness. It blocks on its
@@ -366,8 +463,10 @@ func StartDryRun(bc *core.BlockChain, pool *txpool.TxPool, cfg *params.ChainConf
 		e:   &SimEngine{chainCfg: cfg, engine: engine},
 		bc:  bc,
 		cfg: drCfg,
-		// (Submission orchestrator omitted from this read-only artifact — see note
-		// on the dryRunner.sub field above.)
+		// Phase 3 orchestrator: safe to build always; DISARMED unless every
+		// arming factor (SIMENGINE_ARM=submit + wallet + executor + builder creds)
+		// is present. With no env set this is fully inert.
+		sub: NewSubmitConfig(),
 		// Gross-positive distribution accumulator for the intra-block characterisation.
 		// The gas-price sweep is taken from SIMENGINE_DRYRUN_GASPRICES (CSV gwei),
 		// default "0,0.1,0.3,1,3".
@@ -386,6 +485,14 @@ func StartDryRun(bc *core.BlockChain, pool *txpool.TxPool, cfg *params.ChainConf
 		// CENSORSHIP-DIFFERENTIAL (D) dropped-opportunity BNB distribution, same
 		// gas-price sweep source as the other detectors.
 		csDist: strategy.NewGrossDist(strategy.ParseGasPriceSweepGwei(os.Getenv("SIMENGINE_DRYRUN_GASPRICES"))),
+		// BACKRUN-ANY gross-positive BNB distribution (same sweep source as
+		// sandwich-any for a direct, matched-footprint comparison).
+		brDist: strategy.NewGrossDist(strategy.ParseGasPriceSweepGwei(os.Getenv("SIMENGINE_DRYRUN_GASPRICES"))),
+		// SERIALIZE upper/lower net-BNB distributions (same sweep source).
+		ssUpperDist: strategy.NewGrossDist(strategy.ParseGasPriceSweepGwei(os.Getenv("SIMENGINE_DRYRUN_GASPRICES"))),
+		ssLowerDist: strategy.NewGrossDist(strategy.ParseGasPriceSweepGwei(os.Getenv("SIMENGINE_DRYRUN_GASPRICES"))),
+		// BLIND-SPOT pattern breakdown map.
+		bsPatternMap: make(map[string]uint64),
 	}
 	r.totalWei.Store(big.NewInt(0))
 	r.swTotalNetWei.Store(big.NewInt(0))
@@ -395,6 +502,10 @@ func StartDryRun(bc *core.BlockChain, pool *txpool.TxPool, cfg *params.ChainConf
 	r.rzLeftNetWei.Store(big.NewInt(0))
 	r.csDhatWei.Store(big.NewInt(0))
 	r.csCreditedDrops = make(map[common.Hash]bool)
+	r.brTotalNetWei.Store(big.NewInt(0))
+	r.ssUpperTotalNetWei.Store(big.NewInt(0))
+	r.ssLowerTotalNetWei.Store(big.NewInt(0))
+	r.bsRecallMissedRealizedWei.Store(big.NewInt(0))
 
 	switch mode {
 	case "live":
@@ -432,6 +543,42 @@ func StartDryRun(bc *core.BlockChain, pool *txpool.TxPool, cfg *params.ChainConf
 		// real long-tail sandwich MEV lives. See dryrun_sandwich_any.go.
 		log.Info("SimEngine dry-run starting", "mode", "sandwich-any")
 		r.runSandwichAnyBacktest()
+	case "backrun-any":
+		// ANY-POOL LONG-TAIL BACKRUN valuation: for EVERY decoded V2/V3 victim swap
+		// on ANY pool, size the optimal single trailing backrun (one swap that sells
+		// the price the victim just moved back to the victim's input token) on the
+		// EXACT post-victim state, gated gas-only (no flash, no bid-on-input). This
+		// covers the SAME any-pool victim universe as sandwich-any, isolating the
+		// true sandwich-vs-backrun opportunity ratio on arbitrary pools. See
+		// dryrun_backrun_any.go.
+		log.Info("SimEngine dry-run starting", "mode", "backrun-any")
+		r.runBackrunAnyBacktest()
+	case "sandwich-serialize":
+		// SERIALIZED CONTENDING SAME-POOL EXECUTION: per block, group ex-post opps by
+		// pool and measure the INDEPENDENT upper bound (each opp on a fresh parent
+		// Copy, as sandwich-any does today) vs the SERIALIZED lower bound (opps
+		// applied in order on the cumulative state). The gap is the concurrency
+		// over-count when multiple contending opps land on the same pool. Read-only.
+		// See dryrun_sandwich_serialize.go.
+		log.Info("SimEngine dry-run starting", "mode", "sandwich-serialize")
+		r.runSandwichSerializeBacktest()
+	case "blindspot":
+		// BLIND-SPOT TRACE-PROBE: a retrospective probe of the same any-pool ex-post
+		// net-positive captures, scanning each victim tx's ERC20 Transfer logs +
+		// Swap legs for intra-tx evasion patterns (atomic round-trip; proceeds swept
+		// to a cold address) a flat-balance same-actor detector would miss, and
+		// summing OUR netBNB over them as an upper bound on the hidden slice.
+		// Read-only. See dryrun_blindspot.go.
+		log.Info("SimEngine dry-run starting", "mode", "blindspot")
+		r.runBlindspotBacktest()
+	case "receipt-valid":
+		// WIDEN RECEIPT VALIDATION: stratified re-execution validation over a height
+		// range, classifying each sampled block (v3 / fee-on-transfer / fork-boundary
+		// / generic) and diffing simulated vs canonical receipts. Read-only. See
+		// dryrun_receipt_valid.go.
+		log.Info("SimEngine dry-run starting", "mode", "receipt-valid")
+		r.rtv = &rtvCounters{}
+		r.runReceiptValidBacktest()
 	case "realizability":
 		// IN-BLOCK COUNTERFACTUAL: for each EX-POST net-positive sandwich opp the
 		// any-pool detector surfaces in a canonical block, decide whether a REAL
@@ -742,8 +889,13 @@ func (r *dryRunner) liveTx(tx *types.Transaction) {
 		return
 	}
 
-	// (Wallet nonce-tracker seeding omitted with the submission orchestrator —
-	// this read-only artifact has no wallet and never sends.)
+	// Phase 3: seed the wallet nonce tracker once from head state (armed only;
+	// no-op when the wallet is disabled / disarmed).
+	if r.sub != nil {
+		r.sub.MaybeInitNonce(func() uint64 {
+			return statedb.GetNonce(r.sub.WalletAddress())
+		})
+	}
 
 	// Simulate the single target tx on a copy of head state. We synthesise a
 	// child header (head height+1) so the EVM block context is the next block.
@@ -795,10 +947,17 @@ func (r *dryRunner) liveTx(tx *types.Transaction) {
 			"amountInWei", eval.OptimalAmountIn.String(),
 			"gasWei", eval.GasCost.String(),
 		)
-		// The opportunity is recorded and LOGGED above only. The upstream private
-		// fork would hand it to an arm-gated submission orchestrator here; that
-		// path is intentionally omitted from this read-only artifact (no wallet,
-		// no builder, never sends).
+		// Phase 3: hand the opportunity to the arm-gated orchestrator. DISARMED by
+		// default — it builds + LOGS the would-be bundle and never signs/sends
+		// unless every arming factor is satisfied (see submit.go). This is the
+		// LIVE-path replacement for the former Phase-2 TODO stub.
+		if r.sub != nil {
+			var chainID *big.Int
+			if r.e != nil && r.e.chainCfg != nil {
+				chainID = r.e.chainCfg.ChainID
+			}
+			r.sub.HandleOpportunity(chainID, tx, pp, ra, rb, eval, fwd, head.Number.Uint64())
+		}
 	}
 
 	if r.cfg.TallyEvery > 0 && n%r.cfg.TallyEvery == 0 {

@@ -481,6 +481,60 @@ func (e *SimEngine) ApplyOnStateHooked(statedb *state.StateDB, chainCtx simChain
 	}, nil
 }
 
+// ApplyCanonicalTxOnto applies ONE real block transaction onto an already
+// block-begin-set-up state COPY, mirroring the canonical per-tx semantics of
+// applyOnState: BSC system transactions are skipped (treated as a no-op success),
+// the tx is bracketed by a Snapshot/RevertToSnapshot so a hard ApplyTransaction
+// ERROR rolls the copy + gas pool back (keeping the copy CONSISTENT) and is
+// reported as ok=false, and a tx that merely REVERTS on-chain (status=failed but
+// no ApplyTransaction error) is a normal canonical inclusion and is kept (ok=true).
+//
+// It is used by the sandwich-serialize lower band to advance ONE cumulative copy
+// through the real intervening txs in canonical order, so both bands share the
+// identical canonical substrate. The caller's `sdb` MUST be a Copy of a state that
+// already has the block-begin setup applied (e.g. a victim's captured pre-state),
+// since this method does NOT re-run TryUpdateBuildInSystemContract / beacon-root
+// processing (those are block-level and already baked into the captured state).
+//
+// gp is a per-call fresh gas pool seeded from the header limit; we apply a single
+// tx so cumulative gas accounting across the prefix is not required for
+// correctness of the resulting state (the gas pool only gates per-tx execution).
+// Strictly read-only w.r.t. the canonical chain (operates on the caller's Copy).
+func (e *SimEngine) ApplyCanonicalTxOnto(sdb *state.StateDB, chainCtx simChainContext, header *types.Header, tx *types.Transaction) (ok bool) {
+	if sdb == nil || header == nil || tx == nil {
+		return false
+	}
+	// Skip BSC system transactions (the consensus engine runs them in Finalize).
+	if posa, isPoSA := e.engine.(consensus.PoSA); isPoSA {
+		isSystemTx, sErr := posa.IsSystemTransaction(tx, header)
+		if sErr != nil {
+			return false
+		}
+		if isSystemTx {
+			return true // no-op success: a system tx does not change the user substrate.
+		}
+	}
+
+	coinbase := header.Coinbase
+	blockCtx := core.NewEVMBlockContext(header, chainCtx, &coinbase)
+	evm := vm.NewEVM(blockCtx, sdb, e.chainCfg, e.vmConfig)
+
+	gp := new(core.GasPool).AddGas(header.GasLimit)
+	var usedGas uint64
+
+	// Snapshot BEFORE ApplyTransaction so a hard error rolls back without crossing a
+	// finalised revision (ApplyTransaction only Finalises on SUCCESS; on error no
+	// receipt is produced and the journal is not finalised, so reverting is safe —
+	// the canonical applyOnState loop relies on the same property).
+	snap := sdb.Snapshot()
+	sdb.SetTxContext(tx.Hash(), 0)
+	if _, aErr := core.ApplyTransaction(evm, gp, sdb, header, tx, &usedGas); aErr != nil {
+		sdb.RevertToSnapshot(snap)
+		return false
+	}
+	return true
+}
+
 // SimulateOnState runs the shared execution loop against a caller-supplied
 // state and chain context. The caller MUST pass a copy of the canonical state
 // (e.g. bc.StateAt(parent.Root) then .Copy()) — the loop mutates statedb in

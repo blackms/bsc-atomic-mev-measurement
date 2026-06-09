@@ -859,6 +859,82 @@ func (e *SimEngine) probeSandwichAnyDiag(preState *state.StateDB, cc simChainCon
 	return d
 }
 
+// ---------------------------------------------------------------------------
+// ANY-POOL BACKRUN as a CROSS-POOL CYCLE (round-1 redesign).
+//
+// A backrun is NOT a single-pool round trip (numeraire->other->numeraire on the
+// SAME pool): under constant-product fee dynamics (gamma < 1) that is ALWAYS a
+// structural loss — the victim's price move is already baked into the post-victim
+// reserves, so a round trip at those reserves eats both legs of fees with NO
+// arbitrage capture, and the detector fires zero times. A TRUE backrun is a
+// CROSS-POOL cycle: the victim moves the price on pool P; the arb exploits the
+// resulting gap via a DIFFERENT pool P' that shares a token. We therefore value
+// the backrun by REUSING the existing cyclic-arbitrage detector (strategy.
+// NegativeCycles / CycleOptimum / ValueCycle) on the POST-VICTIM state, seeding
+// the graph from the pools the victim TOUCHED plus the verified hub set.
+// ---------------------------------------------------------------------------
+
+// anyPoolToExtPool converts a resolved anyPool into the strategy.ExtPool the graph
+// builder consumes. The two share token0/token1/gamma/feeTier/isV3 semantics; the
+// DEX label is a best-effort tag for the opportunity logs. Returns ok=false for an
+// unresolved pool. V3 pools that are not Pancake-V3 (no router path) are still
+// included for DETECTION purposes (the cross-pool gap they reveal is real); sizing
+// of any cycle that includes them is deferred to the EVM oracle exactly as the hub
+// graph mode does.
+func anyPoolToExtPool(p anyPool) (strategy.ExtPool, bool) {
+	if !p.ok || (p.token0 == common.Address{}) || (p.token1 == common.Address{}) {
+		return strategy.ExtPool{}, false
+	}
+	dex := strategy.DEXPancakeV2
+	if p.isV3 {
+		dex = strategy.DEXPancakeV3
+	}
+	return strategy.ExtPool{
+		Name:     "any:" + poolLabel(p.pair),
+		DEX:      dex,
+		Pair:     p.pair,
+		Token0:   p.token0,
+		Token1:   p.token1,
+		Gamma:    p.gamma,
+		IsV3:     p.isV3,
+		FeeTier:  p.feeTier,
+		Verified: true, // explicit-slice builder never filters on Verified.
+	}, true
+}
+
+// BuildAnyPoolGraph seeds a strategy.Graph from the union of (a) the pools the
+// victim TOUCHED (resolved from the per-block touched-pool set) and (b) the
+// verified hub set (strategy.ExtendedPools), de-duplicated by pair address. The
+// graph is built on the supplied POST-VICTIM state so cross-pool cycles reflect
+// the gap the victim opened. Returns the graph plus the combined pool slice (the
+// latter so callers can look up an edge's pool metadata for gas/V3 routing). The
+// resolved touched pools come from the caller (it already decoded the victim's
+// Swap logs); this keeps BuildAnyPoolGraph pure over the supplied inputs.
+func BuildAnyPoolGraph(postState *state.StateDB, touched []anyPool) (*strategy.Graph, []strategy.ExtPool) {
+	seen := make(map[common.Address]bool)
+	combined := make([]strategy.ExtPool, 0, len(touched)+12)
+
+	for _, tp := range touched {
+		ep, ok := anyPoolToExtPool(tp)
+		if !ok || seen[ep.Pair] {
+			continue
+		}
+		seen[ep.Pair] = true
+		combined = append(combined, ep)
+	}
+	// Union with the verified hub set (cross-touched-pool cycles close via the hub
+	// stables/WBNB). Dedup against pools the victim already contributed.
+	for _, hp := range strategy.ExtendedPools() {
+		if seen[hp.Pair] {
+			continue
+		}
+		seen[hp.Pair] = true
+		combined = append(combined, hp)
+	}
+
+	return strategy.BuildGraphFromPools(postState, combined), combined
+}
+
 // sandwichProfitV3Router values a Pancake V3 victim via the existing SwapRouter
 // (exactInputSingle), reusing the known funding path (the attacker holds the
 // tokens and approves the router). It mirrors sandwichProfit's V3 branch but with

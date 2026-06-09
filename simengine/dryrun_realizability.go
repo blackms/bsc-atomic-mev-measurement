@@ -325,8 +325,17 @@ func (r *dryRunner) realizabilityBlock(head *types.Header) {
 			func() {
 				defer func() {
 					if rec := recover(); rec != nil {
+						// AUDITABLE PANIC DROP (M5 fix): the per-victim evaluation panicked
+						// and is being silently dropped from the ex-post funnel. Round-1
+						// only logged this; the count was carried by rzSkippedNilResult,
+						// which is DEAD CODE (strategy.OptimalFrontrun never returns a nil
+						// gross), so panic-drops were unmeasured. Increment a dedicated
+						// counter INSIDE the recover so the drop count is surfaced in the
+						// tally and the funnel can never silently lose a victim again.
+						r.rzRecoveredPanics.Add(1)
 						log.Warn("SimEngine realizability per-victim recovered from panic",
-							"block", number, "txIndex", i, "tx", tx.Hash(), "panic", rec)
+							"block", number, "txIndex", i, "tx", tx.Hash(), "panic", rec,
+							"recoveredPanics", r.rzRecoveredPanics.Load())
 					}
 				}()
 				if opp := r.rzEvaluateExPostVictim(number, i, tx, head, victimPreState, pair, tokenIn, amountIn, isV3); opp != nil {
@@ -678,6 +687,16 @@ func (r *dryRunner) rzEvaluateExPostVictim(number uint64, txIndex int, victimTx 
 
 	frontrun, grossNum, gasUnits := r.e.optimalFrontrunAny(preState, r.bc, head, victimTx, pool, attackerTokenIn, amountIn, victimAmountInNumeraire)
 
+	// Nil guard. NOTE (M5): this branch is effectively UNREACHABLE —
+	// optimalFrontrunAny / strategy.OptimalFrontrun never return a nil gross — so
+	// rzSkippedNilResult is ~always 0 and measures nothing. It is kept as a defensive
+	// guard only (a nil here would otherwise panic at .Sign()); the genuine silent
+	// per-victim drop is the recovered panic in backrunBlock's onTx, now counted by
+	// rzRecoveredPanics.
+	if grossNum == nil {
+		r.rzSkippedNilResult.Add(1)
+		return nil
+	}
 	if grossNum.Sign() <= 0 {
 		return nil
 	}
@@ -1310,6 +1329,8 @@ func (r *dryRunner) logRealizabilityTally(processed uint64) {
 		"exPostNetPositive", exPost,
 		"alreadyCaptured", captured,
 		"leftOnTable", left,
+		"skippedNilResult", r.rzSkippedNilResult.Load(),
+		"recoveredPanics", r.rzRecoveredPanics.Load(),
 		"captureRate", rate,
 		"bracketCandidates", r.rzBracketCandidates.Load(),
 		"sameActorPass", r.rzSameActorPass.Load(),

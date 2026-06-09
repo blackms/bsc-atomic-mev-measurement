@@ -422,6 +422,64 @@ func CycleOptimum(c Cycle) (optimalAmountIn, grossProfit *big.Int) {
 	return bestX, bestP
 }
 
+// BestCycleGrossV2 returns the maximum closed-form gross profit (in the START
+// token's wei) over every negative cross-pool cycle of length up to maxLen that
+// starts and ends at `start`, sized by the exact CycleOptimum. V3-containing
+// cycles are skipped (they have no closed form and need the EVM oracle). Returns
+// 0 when no profitable all-V2 cycle exists from `start`. Pure and read-only over
+// the supplied graph — the hermetic unit of the marginal-backrun valuation.
+func BestCycleGrossV2(g *Graph, start common.Address, maxLen int) *big.Int {
+	best := big.NewInt(0)
+	if g == nil {
+		return best
+	}
+	for _, c := range g.NegativeCycles(start, maxLen) {
+		_, gross := CycleOptimum(c)
+		if gross != nil && gross.Cmp(best) > 0 {
+			best = gross
+		}
+	}
+	return best
+}
+
+// MarginalNet is the SINGLE source of truth for the marginal-backrun attribution
+// rule: it floors each of the pre- and post-victim best NETs at 0 (a net-negative
+// backrun would not be executed, so it contributes a 0 baseline), subtracts, and
+// floors the difference at 0. A STANDING value present identically pre and post
+// cancels (0); only a victim-CREATED or victim-WIDENED gap yields > 0; a victim
+// that partially CLOSES a pre-existing gap (post < pre) yields 0. nil is treated as
+// 0. Both the simengine detector and MarginalBackrunGrossV2 route through this so
+// the rule lives in exactly one tested place.
+func MarginalNet(preNet, postNet *big.Int) *big.Int {
+	floor0 := func(x *big.Int) *big.Int {
+		if x == nil || x.Sign() < 0 {
+			return big.NewInt(0)
+		}
+		return x
+	}
+	pre := floor0(preNet)
+	post := floor0(postNet)
+	m := new(big.Int).Sub(post, pre)
+	if m.Sign() < 0 {
+		return big.NewInt(0)
+	}
+	return m
+}
+
+// MarginalBackrunGrossV2 is the victim's MARGINAL backrun contribution: the best
+// cross-pool cycle gross on the POST-victim graph MINUS the best on the PRE-victim
+// graph, floored at 0. A STANDING cycle present IDENTICALLY in pre and post yields
+// 0 (it was not created by the victim); only a victim-CREATED or victim-WIDENED gap
+// yields > 0. This is the pure analogue of the detector's net-level marginal: it
+// pins the attribution rule (subtract the pre-existing baseline) without any
+// BNB/gas conversion, so it is hermetically testable on hand-built graphs. It routes
+// the post-minus-pre subtraction through the shared MarginalNet rule.
+func MarginalBackrunGrossV2(pre, post *Graph, start common.Address, maxLen int) *big.Int {
+	postBest := BestCycleGrossV2(post, start, maxLen)
+	preBest := BestCycleGrossV2(pre, start, maxLen)
+	return MarginalNet(preBest, postBest)
+}
+
 // EvaluateCycle sizes an all-V2 cycle and subtracts the supplied economic costs
 // to produce a net would-be Evaluation, reusing the exact same EvalParams /
 // Evaluation types as the 2-pool path so the harness reporting is uniform. For

@@ -3,7 +3,7 @@
 //
 // dryrun_intrablock.go is the v3 PER-SWAP INTRA-BLOCK backrun detector,
 // selectable with SIMENGINE_DRYRUN=intrablock. It is the answer to the v2
-// limitation of post-block evaluation: post-block evaluation
+// limitation documented in paper/90-lab-notebook.md: post-block evaluation
 // (modes "backtest" and "graph") MISSES backrun MEV because competing arbers
 // re-align pool prices WITHIN the block. The cross-DEX gap that a backrun would
 // capture exists only in the TRANSIENT state right AFTER a victim swap and
