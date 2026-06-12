@@ -16,7 +16,8 @@ datadir/
 *.sst
 LOCK
 
-# LaTeX build byproducts (keep paper.pdf, drop the rest)
+# LaTeX build byproducts (repo rebuilds the PDF from .tex — do not commit paper.pdf)
+paper/paper.pdf
 paper/*.aux
 paper/*.bbl
 paper/*.blg

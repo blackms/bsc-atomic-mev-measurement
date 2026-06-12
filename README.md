@@ -6,12 +6,16 @@ Reproducibility artifact for the paper *"Receipt-Exact Measurement of the
 Atomic-MEV Surface on Post-PBS BNB Smart Chain: The Realized Independent-Searcher
 Edge Is Vanishingly Small"* (Alessio Rocchi, 2026).
 
-> Status: **work in progress / preprint-grade**. The peer-review-driven major
-> revision (Phase-1 instrument extensions, Phase-2 multi-detector measurement)
-> closed blockers **B1/B2/B3/M1/M2** with empirical numbers; the headline
-> capture-rate is currently re-measured on a long multi-day window (16
-> `TODO(revision)` placeholders in the paper). This repository tracks that
-> revision in the open.
+> Status: **data-complete**. The peer-review-driven major revision (Phase-1
+> instrument extensions, Phase-2 multi-detector measurement) closed blockers
+> **B1/B2/B3/M1/M2** with empirical numbers, and the headline capture-rate is now
+> measured: **45 of 96,064 ex-post net-positive opportunities already captured =
+> 0.0468% by count (Wilson 95% CI [0.0350%, 0.0627%]), 0.0078% by value, over
+> 315,750 processed blocks spanning ~2.5 days** (2026-06-09 04:27 → 2026-06-11
+> 17:29). The 14-day collection target was **early-stopped** when state growth
+> exhausted the disk volume and a disk-guard watchdog gracefully halted the node,
+> so the headline covers a **single ~2.5-day market regime** rather than a
+> multi-regime average. The paper is data-complete (0 `TODO(revision)`).
 
 ## Headline result
 
@@ -25,17 +29,32 @@ parent state via the node's own `core.ApplyTransaction`, producing receipts that
 match the canonically stored receipts **byte-exactly** — validated **500/500 on
 stratified in-range blocks** spanning V3-heavy and fee-on-transfer categories.
 
-The central finding: on post-PBS (BEP-322) BSC, the **independent searcher's
-realized atomic-MEV edge is vanishingly small** — small but measurably non-zero,
-concentrated in a few repeated addresses, and the *missed-capture upper bound*
-from a trace-level blind-spot probe is **empirically zero on 30,100 blocks**. The
-ex-post surface exists; the realized capture does not flow to independent
-searchers.
+The central finding: on post-PBS (BEP-322) BSC, the realized atomic-MEV capture
+rate is **vanishingly small** — **45 of 96,064 ex-post net-positive opportunities
+were already captured on-chain = 0.0468% by count (Wilson 95% CI [0.0350%,
+0.0627%]), 0.0078% by value**, over 315,750 processed blocks spanning ~2.5 days.
+What little capture occurs is **not by block builders** (`byBuilder = 0`) and is
+**concentrated in a few repeated addresses**: 25 of the 45 captures go to repeated
+senders and a single address (`0xCF2e..C842`) accounts for **17 of 45 (38%)**; the
+remaining 20 are unknown. The *missed-capture upper bound* from a trace-level
+blind-spot probe is **empirically zero on 30,100 blocks**. The ex-post surface
+exists; the realized capture is rare and concentrated.
+
+> **The independent-searcher edge is an *inference*, not a direct measurement.**
+> This instrument directly measures the *already-captured fraction* of the ex-post
+> surface (0.0468% by count). The headline claim that an *independent* searcher's
+> realized edge is vanishingly small is an **inference** from that capture
+> structure (rare, `byBuilder = 0`, 38% concentrated in one address) via the
+> *unrealized ≠ available* argument (paper §6.1) — we do **not** deploy a live
+> searcher and measure its PnL. Three quantities are measured directly and the
+> fourth (the independent edge) only by inference, and we keep that boundary
+> explicit.
 
 ## Key Phase-2 measurements (paper revision)
 
 | Blocker | Window | Result |
 |---|---|---|
+| **Headline realizability** | 315,750 blk / ~2.5 days (geth-sim20; 14-day target early-stopped on disk/state growth) | **45/96,064 already-captured = 0.0468% by count [Wilson 95% CI 0.0350%, 0.0627%], 0.0078% by value; `byBuilder = 0`, 25 by repeated addr (`0xCF2e..C842` = 17/45 = 38%), 20 unknown** |
 | **B2** receipt-validation widened | 500 stratified blocks, in-range | passRate = 1.00, 0 dropped-tx, 0 mismatch on 47,586 txs |
 | **B3** backrun matched-footprint | 16,100 blk on long-tail any-pool | 55 OPP, 0.484 BNB ≈ $291; rate-normalized contrast vs sandwich ≈ **440×** |
 | **B1** blind-spot identification gap | 30,100 blk trace-probe | 1,585 round-trip + 2 sweep patterns exist, **upperBoundMissedRealized = 0 BNB** |

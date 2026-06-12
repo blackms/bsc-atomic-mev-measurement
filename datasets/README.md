@@ -8,6 +8,7 @@ This directory contains the raw `tally` / `dist` log lines produced by the SimEn
 | `backrun-any-postfix-final-2026-06-08.log.gz` | 16,100 blk (post sanity-cap) | **B3** matched-footprint | 55 OPP, 0.484 BNB ≈ $291 |
 | `blindspot-final-2026-06-08.log.gz` | 30,100 blk | **B1** identification gap | `upperBoundMissedRealizedWei = 0` |
 | `serialize-final-2026-06-09.log.gz` | 23,300 blk | **M1/M2** over-count | `η = 0.17%` (upper-vs-lower band) |
+| `headline-final-tally-2026-06-11_1729.txt.gz` | 315,750 blk / ~2.5 days (geth-sim20) | **Headline** realizability capture rate | `45/96,064` already-captured = **0.0468% by count** [Wilson 95% CI 0.0350%, 0.0627%], **0.0078% by value**; `byBuilder=0`, 25 by repeated addr (`0xCF2e..C842` = 17/45 = 38%), 20 unknown |
 
 ## Format
 
@@ -22,7 +23,7 @@ zcat backrun-any-postfix-final-2026-06-08.log.gz | grep 'backrun-any tally' | ta
 
 Each window was measured on `geth-sim20` (the merged build with all Phase-1 instruments) running against a synced BSC mainnet node. The exact block-height ranges are documented in the paper §5.1–§6.1.
 
-These files are the **frozen reference numbers** behind the paper's Phase-2 closures; the still-running 14-day headline window adds the final capture-rate stable estimate (16 `TODO(revision)` placeholders in the paper).
+These files are the **frozen reference numbers** behind the paper's Phase-2 closures. The `headline-final-tally-2026-06-11_1729.txt.gz` snapshot is the **completed** headline realizability window (geth-sim20, 315,750 processed blocks, 2026-06-09 04:27 → 2026-06-11 17:29). The 14-day collection target was **early-stopped** when state growth exhausted the disk volume and a disk-guard watchdog gracefully halted the node, so the headline covers a single ~2.5-day market regime. The paper is now data-complete (0 `TODO(revision)`).
 
 ## What's NOT here
 
